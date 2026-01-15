@@ -1,28 +1,28 @@
 /* ===== CSS Variables ===== */
 :root {
-  /* Colors - Organic Luxury Palette */
-  --bg-primary: #0f120f; /* Almost Black Green */
-  --bg-secondary: #172e15; /* Deep Green */
+  /* Colors - Coastal Luxury Palette */
+  --bg-primary: #14465c; /* Dark Teal (Sea Depth) */
+  --bg-secondary: #0f3a4d; /* Darker Teal */
 
-  --bg-card: rgba(23, 46, 21, 0.4); /* Very subtle glass */
-  --bg-card-hover: rgba(23, 46, 21, 0.6);
+  --bg-card: rgba(20, 70, 92, 0.4); /* Teal Glass */
+  --bg-card-hover: rgba(20, 70, 92, 0.6);
 
-  --text-primary: #e8eae3; /* Off-white / Bone */
-  --text-secondary: #d6d9a6; /* Pale Sage */
-  --text-muted: #8a8d71; /* Darker Sage */
+  --text-primary: #effbf1; /* Minty White */
+  --text-secondary: #cecf8d; /* Pale Olive */
+  --text-muted: #878e75; /* Sage Grey */
 
-  --accent-primary: #c77825; /* Bronze/Gold */
-  --accent-secondary: #b25c00; /* Burnt Orange */
-  --accent-gradient: linear-gradient(135deg, #c77825 0%, #9a5e1b 100%);
+  --accent-primary: #ff882e; /* Vibrant Orange (Flowers) */
+  --accent-secondary: #e09470; /* Salmon */
+  --accent-gradient: linear-gradient(135deg, #ff882e 0%, #e09470 100%);
 
-  --success: #a8bb7a;
-  --warning: #cfd670;
-  --error: #e7a459;
+  --success: #878e75; /* Sage */
+  --warning: #cecf8d; /* Pale Olive */
+  --error: #fea5c6; /* Pink (Visibility on Teal) */
 
-  /* Glassmorphism - Refined */
-  --glass-bg: rgba(23, 46, 21, 0.2);
-  --glass-border: rgba(214, 217, 166, 0.08); /* Very subtle border */
-  --glass-blur: 12px;
+  /* Glassmorphism - Coastal */
+  --glass-bg: rgba(20, 70, 92, 0.3);
+  --glass-border: rgba(206, 207, 141, 0.1); /* Olive tint */
+  --glass-blur: 16px; /* Slightly blurrier for water effect */
 
   /* Spacing */
   --spacing-xs: 0.5rem;
@@ -46,7 +46,7 @@
   --shadow-sm: 0 4px 20px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 60px rgba(199, 120, 37, 0.15);
+  --shadow-glow: 0 0 60px rgba(255, 136, 46, 0.2); /* Orange glow */
 
   /* Typography */
   --font-heading: "Cormorant Garamond", serif;
@@ -96,12 +96,12 @@ body::before {
   inset: 0;
   background: radial-gradient(
       circle at 30% 20%,
-      rgba(23, 46, 21, 0.8) 0%,
+      rgba(20, 70, 92, 0.8) 0%,
       transparent 60%
     ),
     radial-gradient(
       circle at 80% 90%,
-      rgba(199, 120, 37, 0.05) 0%,
+      rgba(255, 136, 46, 0.08) 0%,
       transparent 50%
     );
   z-index: -1;
@@ -534,10 +534,10 @@ h1 {
 @keyframes progressGlow {
   0%,
   100% {
-    box-shadow: 0 0 10px rgba(199, 120, 37, 0.3);
+    box-shadow: 0 0 10px rgba(255, 136, 46, 0.3);
   }
   50% {
-    box-shadow: 0 0 20px rgba(199, 120, 37, 0.6);
+    box-shadow: 0 0 20px rgba(255, 136, 46, 0.6);
   }
 }
 
@@ -563,7 +563,7 @@ h1 {
   align-items: center;
   gap: var(--spacing-sm);
   padding: var(--spacing-sm);
-  background: rgba(168, 187, 122, 0.1); /* Success Light Green */
+  background: rgba(135, 142, 117, 0.1); /* Sage Tint */
   border-radius: var(--radius-sm);
   border-left: 2px solid var(--success);
 }
