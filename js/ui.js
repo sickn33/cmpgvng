@@ -74,8 +74,13 @@ function initDropZone() {
   dropZone.addEventListener("drop", handleDrop, false);
 
   // Click to select files
+  // Click to select files
   dropZone.addEventListener("click", (e) => {
-    if (e.target.tagName !== "INPUT") {
+    // Avoid double triggering if clicking the label/input directly
+    if (
+      e.target.tagName !== "INPUT" &&
+      !e.target.closest(".file-input-label")
+    ) {
       document.getElementById("fileInput").click();
     }
   });
