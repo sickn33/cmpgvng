@@ -92,7 +92,10 @@ async function uploadAll() {
     return;
   }
 
-  const pendingFiles = fileQueue.filter((f) => f.status === "pending");
+  // Filter only local pending files (not Google imports which handle their own upload)
+  const pendingFiles = fileQueue.filter(
+    (f) => f.status === "pending" && !f.source
+  );
   if (pendingFiles.length === 0) {
     showToast("Nessun file da caricare", "warning");
     return;
@@ -107,13 +110,17 @@ async function uploadAll() {
 
   uploadInProgress = true;
   totalBytesUploaded = 0;
-  totalBytesToUpload = pendingFiles.reduce((acc, f) => acc + f.file.size, 0);
+  totalBytesToUpload = pendingFiles.reduce(
+    (acc, f) => acc + (f.file ? f.file.size : f.size || 0),
+    0
+  );
 
   showProgressCard(true);
   updateProgressBar(0);
 
   for (let i = 0; i < fileQueue.length; i++) {
-    if (fileQueue[i].status !== "pending") continue;
+    // Skip non-pending files and Google-sourced files (they have their own upload)
+    if (fileQueue[i].status !== "pending" || fileQueue[i].source) continue;
 
     fileQueue[i].status = "uploading";
     renderFileQueue();
@@ -240,6 +247,10 @@ function formatFileSize(bytes) {
  * Generate preview URL for image files
  */
 function getFilePreviewUrl(file) {
+  // Check if file exists and has type property
+  if (!file || !file.type) {
+    return null;
+  }
   if (file.type.startsWith("image/")) {
     return URL.createObjectURL(file);
   }
