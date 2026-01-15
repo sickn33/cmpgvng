@@ -144,7 +144,19 @@ L'API Microsoft Graph permette di caricare file usando:
 2. La cartella è stata condivisa con permesso "Edit" o solo "View"?
 3. L'utente esterno vede la cartella in "Condivisi con me" nel suo OneDrive web?
 
-**Stato:** ⏳ In attesa informazioni utente
+**Stato:** ✅ Fix implementata e deployata
+
+#### Fix Applicata (2026-01-15)
+
+Aggiunto header `Prefer: redeemSharingLink` alla chiamata `/shares/{encodedUrl}/driveItem` in `upload.js`.
+
+**Commit:** `784cd6f`
+
+**Da verificare:**
+
+1. L'utente esterno testa l'upload
+2. Se ancora non funziona, verificare che la cartella sia condivisa con permesso "Can edit"
+3. Se serve, aggiungere scope `Sites.ReadWrite.All` nell'app Azure AD
 
 ## Lessons
 

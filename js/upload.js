@@ -19,12 +19,21 @@ let targetDriveItem = null;
  * See: https://learn.microsoft.com/en-us/graph/api/shares-get
  */
 function encodeSharingUrl(url) {
-  // Base64 encode the URL
-  const base64 = btoa(url)
+  // First encode the URL to handle special characters
+  const utf8Bytes = new TextEncoder().encode(url);
+  let binaryString = "";
+  utf8Bytes.forEach((byte) => (binaryString += String.fromCharCode(byte)));
+
+  // Base64 encode and make URL-safe
+  const base64 = btoa(binaryString)
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
     .replace(/=+$/, "");
-  return "u!" + base64;
+
+  const encoded = "u!" + base64;
+  console.log("🔐 URL originale:", url);
+  console.log("🔐 URL encodato:", encoded);
+  return encoded;
 }
 
 /**
@@ -120,6 +129,10 @@ async function resolveShareLink() {
       console.log("✅ Cartella trovata via share link:", sharedItem.name);
       return targetDriveItem;
     } catch (error) {
+      console.error("❌ Share link ERRORE COMPLETO:", error);
+      console.error("❌ Status code:", error.statusCode);
+      console.error("❌ Error code:", error.code);
+      console.error("❌ Request ID:", error.requestId);
       console.log(
         "⚠️ Share link non funziona, creo cartella locale...",
         error.message
