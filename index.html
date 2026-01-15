@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; font-src 'self' data: https://fonts.gstatic.com https://sickn33.github.io; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' https://apis.google.com https://accounts.google.com; img-src 'self' data: blob: https://*.sharepoint.com https://*.microsoft.com https://*.microsoftonline.com https://*.live.com https://*.1drv.com https://*.onedrive.com https://*.office.com https://*.office365.com https: https://*.googleusercontent.com; connect-src 'self' https://*.workers.dev https://www.googleapis.com https://accounts.google.com; frame-src https://docs.google.com https://picker.google.com https://accounts.google.com;"
+      content="default-src 'self'; font-src 'self' data: https://fonts.gstatic.com https://sickn33.github.io; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' https://apis.google.com https://accounts.google.com; img-src 'self' data: blob: https://*.sharepoint.com https://*.microsoft.com https://*.microsoftonline.com https://*.live.com https://*.1drv.com https://*.onedrive.com https://*.office.com https://*.office365.com https: https://*.googleusercontent.com https://lh3.googleusercontent.com; connect-src 'self' https://*.workers.dev https://www.googleapis.com https://accounts.google.com https://photospicker.googleapis.com; frame-src https://docs.google.com https://picker.google.com https://accounts.google.com https://photos.google.com;"
     />
     <title>Carica i tuoi momenti</title>
     <meta
@@ -238,7 +238,22 @@
                       />
                     </svg>
                   </span>
-                  Google Drive
+                  Drive
+                </button>
+                <button
+                  class="btn btn-secondary google-photos-btn"
+                  onclick="openGooglePhotosPicker()"
+                  title="Importa da Google Photos"
+                >
+                  <span class="icon icon-sm">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path
+                        fill="currentColor"
+                        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"
+                      />
+                    </svg>
+                  </span>
+                  Photos
                 </button>
               </div>
               <p class="hint">Supporta immagini e video fino a 500MB</p>

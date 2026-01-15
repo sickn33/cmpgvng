@@ -51,6 +51,14 @@ export default {
         return await handleGoogleDriveUpload(request, env, corsHeaders);
       }
 
+      // Google Photos to OneDrive transfer endpoint
+      if (
+        url.pathname === "/upload-from-google-photos" &&
+        request.method === "POST"
+      ) {
+        return await handleGooglePhotosUpload(request, env, corsHeaders);
+      }
+
       // 404 for unknown routes
       return new Response(JSON.stringify({ error: "Not found" }), {
         status: 404,
@@ -570,4 +578,100 @@ async function uploadLargeFileFromBuffer(buffer, fileName, accessToken, env) {
   }
 
   return result;
+}
+
+/**
+ * Handle Google Photos to OneDrive transfer
+ */
+async function handleGooglePhotosUpload(request, env, corsHeaders) {
+  const body = await request.json();
+  const { mediaItemId, fileName, mimeType, baseUrl, googleAccessToken } = body;
+
+  if (!baseUrl || !googleAccessToken) {
+    return new Response(
+      JSON.stringify({ error: "Missing baseUrl or googleAccessToken" }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
+
+  try {
+    // Step 1: Download photo from Google Photos
+    // For photos, append =d to get full resolution download
+    const downloadUrl = baseUrl.includes("?") ? `${baseUrl}&d` : `${baseUrl}=d`;
+
+    console.log(`Downloading from Google Photos: ${mediaItemId}`);
+
+    const photoResponse = await fetch(downloadUrl, {
+      headers: {
+        Authorization: `Bearer ${googleAccessToken}`,
+      },
+    });
+
+    if (!photoResponse.ok) {
+      const error = await photoResponse.text();
+      console.error("Google Photos download failed:", error);
+      throw new Error(
+        `Failed to download from Google Photos: ${photoResponse.status}`
+      );
+    }
+
+    // Step 2: Get file content
+    const fileContent = await photoResponse.arrayBuffer();
+    const fileSize = fileContent.byteLength;
+
+    console.log(`Downloaded ${fileSize} bytes. Uploading to OneDrive...`);
+
+    // Step 3: Get OneDrive access token
+    const oneDriveToken = await getAccessToken(env);
+
+    // Step 4: Sanitize filename
+    const sanitizedName = sanitizeFileName(
+      fileName || `photo_${mediaItemId}.jpg`
+    );
+
+    // Step 5: Upload to OneDrive
+    let result;
+    if (fileSize < 4 * 1024 * 1024) {
+      result = await uploadSmallFileFromBuffer(
+        fileContent,
+        sanitizedName,
+        mimeType || "image/jpeg",
+        oneDriveToken,
+        env
+      );
+    } else {
+      result = await uploadLargeFileFromBuffer(
+        fileContent,
+        sanitizedName,
+        oneDriveToken,
+        env
+      );
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        fileName: result.name,
+        size: result.size,
+        webUrl: result.webUrl,
+        source: "google-photos",
+      }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  } catch (error) {
+    console.error("Google Photos transfer error:", error);
+    return new Response(
+      JSON.stringify({ error: error.message || "Transfer failed" }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
 }

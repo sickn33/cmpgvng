@@ -307,6 +307,20 @@ h1 {
   color: var(--accent-secondary);
 }
 
+/* Google Photos Button */
+.google-photos-btn {
+  position: relative;
+}
+
+.google-photos-btn .icon {
+  color: #4285f4; /* Google blue */
+  transition: color var(--transition-fast);
+}
+
+.google-photos-btn:hover .icon {
+  color: #ea4335; /* Google red */
+}
+
 /* Upload Buttons Container */
 .upload-buttons {
   display: flex;

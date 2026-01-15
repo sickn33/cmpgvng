@@ -1,28 +1,37 @@
 /**
- * Google Drive Picker Integration
- * Allows importing photos from Google Drive to OneDrive
+ * Google Drive & Photos Picker Integration
+ * Allows importing photos from Google Drive and Google Photos to OneDrive
  */
 
 const GOOGLE_CONFIG = {
   apiKey: "AIzaSyC9UoZZlDQcXJXkpqCrX-Tn1sbCJGP-7C8",
   clientId:
     "801285477829-4fc980pm18odkr95ckm4l2ja3h7dd96o.apps.googleusercontent.com",
-  scope: "https://www.googleapis.com/auth/drive.readonly",
+  // Scopes for both Drive and Photos
+  driveScope: "https://www.googleapis.com/auth/drive.readonly",
+  photosScope:
+    "https://www.googleapis.com/auth/photospicker.mediaitems.readonly",
   discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"],
 };
 
 // State
 let gapiLoaded = false;
 let gisLoaded = false;
-let tokenClient = null;
-let accessToken = null;
+let driveTokenClient = null;
+let photosTokenClient = null;
+let driveAccessToken = null;
+let photosAccessToken = null;
+
+// Photos Picker state
+let photosPickerWindow = null;
+let photosSessionId = null;
+let photosPollingInterval = null;
 
 /**
  * Load Google API scripts dynamically
  */
 function loadGoogleApis() {
   return new Promise((resolve, reject) => {
-    // Check if already loaded
     if (gapiLoaded && gisLoaded) {
       resolve();
       return;
@@ -36,7 +45,7 @@ function loadGoogleApis() {
       }
     };
 
-    // Load GAPI (for Picker)
+    // Load GAPI (for Drive Picker)
     if (!document.getElementById("gapi-script")) {
       const gapiScript = document.createElement("script");
       gapiScript.id = "gapi-script";
@@ -60,7 +69,7 @@ function loadGoogleApis() {
       gisScript.src = "https://accounts.google.com/gsi/client";
       gisScript.onload = () => {
         gisLoaded = true;
-        initTokenClient();
+        initTokenClients();
         checkBothLoaded();
       };
       gisScript.onerror = () =>
@@ -73,23 +82,43 @@ function loadGoogleApis() {
 }
 
 /**
- * Initialize OAuth token client
+ * Initialize OAuth token clients for Drive and Photos
  */
-function initTokenClient() {
-  tokenClient = google.accounts.oauth2.initTokenClient({
+function initTokenClients() {
+  // Drive token client
+  driveTokenClient = google.accounts.oauth2.initTokenClient({
     client_id: GOOGLE_CONFIG.clientId,
-    scope: GOOGLE_CONFIG.scope,
+    scope: GOOGLE_CONFIG.driveScope,
     callback: (tokenResponse) => {
       if (tokenResponse.error) {
-        console.error("OAuth Error:", tokenResponse.error);
-        showToast("Errore durante l'autenticazione Google", "error");
+        console.error("Drive OAuth Error:", tokenResponse.error);
+        showToast("Errore durante l'autenticazione Google Drive", "error");
         return;
       }
-      accessToken = tokenResponse.access_token;
-      createAndShowPicker();
+      driveAccessToken = tokenResponse.access_token;
+      createAndShowDrivePicker();
+    },
+  });
+
+  // Photos token client
+  photosTokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_CONFIG.clientId,
+    scope: GOOGLE_CONFIG.photosScope,
+    callback: (tokenResponse) => {
+      if (tokenResponse.error) {
+        console.error("Photos OAuth Error:", tokenResponse.error);
+        showToast("Errore durante l'autenticazione Google Photos", "error");
+        return;
+      }
+      photosAccessToken = tokenResponse.access_token;
+      createPhotosPickerSession();
     },
   });
 }
+
+// ============================================
+// GOOGLE DRIVE PICKER
+// ============================================
 
 /**
  * Open Google Drive Picker
@@ -97,15 +126,12 @@ function initTokenClient() {
 async function openGoogleDrivePicker() {
   try {
     showToast("Caricamento Google Drive...", "info");
-
-    // Load APIs if not already loaded
     await loadGoogleApis();
 
-    // Request access token (will trigger OAuth popup if needed)
-    if (!accessToken) {
-      tokenClient.requestAccessToken({ prompt: "" });
+    if (!driveAccessToken) {
+      driveTokenClient.requestAccessToken({ prompt: "" });
     } else {
-      createAndShowPicker();
+      createAndShowDrivePicker();
     }
   } catch (error) {
     console.error("Error opening Google Drive Picker:", error);
@@ -114,20 +140,20 @@ async function openGoogleDrivePicker() {
 }
 
 /**
- * Create and display the Google Picker
+ * Create and display the Google Drive Picker
  */
-function createAndShowPicker() {
+function createAndShowDrivePicker() {
   const docsView = new google.picker.DocsView(google.picker.ViewId.DOCS_IMAGES)
     .setIncludeFolders(true)
     .setSelectFolderEnabled(false);
 
   const picker = new google.picker.PickerBuilder()
     .setAppId(GOOGLE_CONFIG.clientId.split("-")[0])
-    .setOAuthToken(accessToken)
+    .setOAuthToken(driveAccessToken)
     .setDeveloperKey(GOOGLE_CONFIG.apiKey)
     .addView(docsView)
     .addView(new google.picker.DocsView(google.picker.ViewId.DOCS_VIDEOS))
-    .setCallback(handlePickerCallback)
+    .setCallback(handleDrivePickerCallback)
     .setTitle("Seleziona foto e video da Google Drive")
     .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
     .build();
@@ -136,9 +162,9 @@ function createAndShowPicker() {
 }
 
 /**
- * Handle files selected in the Picker
+ * Handle files selected in Drive Picker
  */
-async function handlePickerCallback(data) {
+async function handleDrivePickerCallback(data) {
   if (data.action === google.picker.Action.CANCEL) {
     return;
   }
@@ -153,7 +179,6 @@ async function handlePickerCallback(data) {
 
     showToast(`${files.length} file selezionati da Google Drive`, "success");
 
-    // Process each file
     for (const file of files) {
       await transferFileFromGoogleDrive(file);
     }
@@ -161,14 +186,13 @@ async function handlePickerCallback(data) {
 }
 
 /**
- * Transfer a file from Google Drive to OneDrive via Worker
+ * Transfer a file from Google Drive to OneDrive
  */
 async function transferFileFromGoogleDrive(file) {
   const fileId = file.id;
   const fileName = file.name;
   const mimeType = file.mimeType;
 
-  // Add to queue with pending status
   const queueItem = {
     id: `gdrive-${fileId}`,
     name: fileName,
@@ -178,7 +202,6 @@ async function transferFileFromGoogleDrive(file) {
     source: "google-drive",
   };
 
-  // Add to file queue (uses existing queue system)
   if (!window.fileQueue) {
     window.fileQueue = [];
   }
@@ -191,14 +214,12 @@ async function transferFileFromGoogleDrive(file) {
 
     const response = await fetch(`${CONFIG.workerUrl}/upload-from-google`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         fileId: fileId,
         fileName: fileName,
         mimeType: mimeType,
-        googleAccessToken: accessToken,
+        googleAccessToken: driveAccessToken,
       }),
     });
 
@@ -225,19 +246,261 @@ async function transferFileFromGoogleDrive(file) {
   }
 }
 
+// ============================================
+// GOOGLE PHOTOS PICKER
+// ============================================
+
 /**
- * Revoke Google access token (logout)
+ * Open Google Photos Picker
+ */
+async function openGooglePhotosPicker() {
+  try {
+    showToast("Caricamento Google Photos...", "info");
+    await loadGoogleApis();
+
+    if (!photosAccessToken) {
+      photosTokenClient.requestAccessToken({ prompt: "" });
+    } else {
+      createPhotosPickerSession();
+    }
+  } catch (error) {
+    console.error("Error opening Google Photos Picker:", error);
+    showToast("Errore nel caricamento di Google Photos", "error");
+  }
+}
+
+/**
+ * Create a Photos Picker session and open picker
+ */
+async function createPhotosPickerSession() {
+  try {
+    // Create session
+    const response = await fetch(
+      "https://photospicker.googleapis.com/v1/sessions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${photosAccessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({}),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error("Photos session creation failed:", error);
+      throw new Error("Impossibile creare sessione Google Photos");
+    }
+
+    const session = await response.json();
+    photosSessionId = session.id;
+
+    // Open picker in popup
+    const pickerUrl = session.pickerUri;
+    photosPickerWindow = window.open(
+      pickerUrl,
+      "GooglePhotosPicker",
+      "width=800,height=600,menubar=no,toolbar=no,location=no"
+    );
+
+    // Start polling for session completion
+    showToast("Seleziona le foto da Google Photos...", "info");
+    startPhotosSessionPolling();
+  } catch (error) {
+    console.error("Error creating Photos session:", error);
+    showToast("Errore con Google Photos: " + error.message, "error");
+  }
+}
+
+/**
+ * Poll Photos Picker session for completion
+ */
+function startPhotosSessionPolling() {
+  // Clear any existing polling
+  if (photosPollingInterval) {
+    clearInterval(photosPollingInterval);
+  }
+
+  let pollCount = 0;
+  const maxPolls = 120; // 2 minutes max
+
+  photosPollingInterval = setInterval(async () => {
+    pollCount++;
+
+    // Check if window was closed without selection
+    if (photosPickerWindow && photosPickerWindow.closed) {
+      clearInterval(photosPollingInterval);
+      showToast("Selezione annullata", "info");
+      return;
+    }
+
+    // Max polling time reached
+    if (pollCount > maxPolls) {
+      clearInterval(photosPollingInterval);
+      showToast("Timeout selezione foto", "warning");
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `https://photospicker.googleapis.com/v1/sessions/${photosSessionId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${photosAccessToken}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        return; // Keep polling
+      }
+
+      const session = await response.json();
+
+      if (session.mediaItemsSet) {
+        clearInterval(photosPollingInterval);
+
+        // Close popup if still open
+        if (photosPickerWindow && !photosPickerWindow.closed) {
+          photosPickerWindow.close();
+        }
+
+        // Fetch selected media items
+        await fetchAndTransferPhotosMediaItems();
+      }
+    } catch (error) {
+      console.error("Polling error:", error);
+    }
+  }, 1000); // Poll every second
+}
+
+/**
+ * Fetch selected media items and transfer to OneDrive
+ */
+async function fetchAndTransferPhotosMediaItems() {
+  try {
+    const response = await fetch(
+      `https://photospicker.googleapis.com/v1/sessions/${photosSessionId}/mediaItems`,
+      {
+        headers: {
+          Authorization: `Bearer ${photosAccessToken}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch media items");
+    }
+
+    const data = await response.json();
+    const mediaItems = data.mediaItems || [];
+
+    if (mediaItems.length === 0) {
+      showToast("Nessuna foto selezionata", "warning");
+      return;
+    }
+
+    showToast(
+      `${mediaItems.length} foto selezionate da Google Photos`,
+      "success"
+    );
+
+    // Transfer each item
+    for (const item of mediaItems) {
+      await transferFileFromGooglePhotos(item);
+    }
+  } catch (error) {
+    console.error("Error fetching Photos media items:", error);
+    showToast("Errore nel recupero delle foto", "error");
+  }
+}
+
+/**
+ * Transfer a photo from Google Photos to OneDrive
+ */
+async function transferFileFromGooglePhotos(mediaItem) {
+  const itemId = mediaItem.id;
+  const fileName = mediaItem.mediaFile?.filename || `photo_${itemId}.jpg`;
+  const mimeType = mediaItem.mediaFile?.mimeType || "image/jpeg";
+  const baseUrl = mediaItem.mediaFile?.baseUrl;
+
+  const queueItem = {
+    id: `gphotos-${itemId}`,
+    name: fileName,
+    type: mimeType,
+    size: 0,
+    status: "pending",
+    source: "google-photos",
+  };
+
+  if (!window.fileQueue) {
+    window.fileQueue = [];
+  }
+  window.fileQueue.push(queueItem);
+  renderFileQueue();
+
+  try {
+    queueItem.status = "uploading";
+    renderFileQueue();
+
+    const response = await fetch(
+      `${CONFIG.workerUrl}/upload-from-google-photos`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mediaItemId: itemId,
+          fileName: fileName,
+          mimeType: mimeType,
+          baseUrl: baseUrl,
+          googleAccessToken: photosAccessToken,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `HTTP ${response.status}`);
+    }
+
+    const result = await response.json();
+
+    queueItem.status = "completed";
+    renderFileQueue();
+    addToCompletedList(queueItem);
+    showToast(`${fileName} caricato con successo!`, "success");
+
+    return result;
+  } catch (error) {
+    console.error(`Error transferring ${fileName}:`, error);
+    queueItem.status = "error";
+    queueItem.error = error.message;
+    renderFileQueue();
+    showToast(`Errore nel trasferimento di ${fileName}`, "error");
+    throw error;
+  }
+}
+
+/**
+ * Revoke Google access tokens
  */
 function revokeGoogleAccess() {
-  if (accessToken) {
-    google.accounts.oauth2.revoke(accessToken, () => {
-      accessToken = null;
-      showToast("Disconnesso da Google Drive", "info");
+  if (driveAccessToken) {
+    google.accounts.oauth2.revoke(driveAccessToken, () => {
+      driveAccessToken = null;
     });
   }
+  if (photosAccessToken) {
+    google.accounts.oauth2.revoke(photosAccessToken, () => {
+      photosAccessToken = null;
+    });
+  }
+  showToast("Disconnesso da Google", "info");
 }
 
 // Export functions
 window.openGoogleDrivePicker = openGoogleDrivePicker;
+window.openGooglePhotosPicker = openGooglePhotosPicker;
 window.revokeGoogleAccess = revokeGoogleAccess;
 window.GOOGLE_CONFIG = GOOGLE_CONFIG;
