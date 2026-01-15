@@ -233,7 +233,7 @@ async function uploadLargeFile(file, fileName, accessToken, env) {
   const uploadUrl = session.uploadUrl;
 
   // Upload in chunks
-  const fileBuffer = await file.arrayBuffer();
+  // Optimization: Do NOT load entire file into memory. Slice blobs instead.
   const fileSize = file.size;
   let uploadedBytes = 0;
   let result;
@@ -241,15 +241,18 @@ async function uploadLargeFile(file, fileName, accessToken, env) {
   while (uploadedBytes < fileSize) {
     const chunkStart = uploadedBytes;
     const chunkEnd = Math.min(uploadedBytes + CHUNK_SIZE, fileSize);
-    const chunk = fileBuffer.slice(chunkStart, chunkEnd);
+
+    // Slice only the needed chunk from the file blob
+    const chunkBlob = file.slice(chunkStart, chunkEnd);
+    const chunkArrayBuffer = await chunkBlob.arrayBuffer();
 
     const chunkResponse = await fetch(uploadUrl, {
       method: "PUT",
       headers: {
-        "Content-Length": chunk.byteLength.toString(),
+        "Content-Length": chunkArrayBuffer.byteLength.toString(),
         "Content-Range": `bytes ${chunkStart}-${chunkEnd - 1}/${fileSize}`,
       },
-      body: chunk,
+      body: chunkArrayBuffer,
     });
 
     if (!chunkResponse.ok) {

@@ -157,15 +157,63 @@ async function uploadFile(fileItem) {
   formData.append("file", file);
   formData.append("password", password);
 
-  // Upload to Worker
-  const response = await fetch(`${CONFIG.workerUrl}/upload`, {
-    method: "POST",
-    body: formData,
-  });
+  // Upload to Worker with Retry Logic
+  let attempts = 0;
+  const maxRetries = 3;
+  let response;
+  let lastError;
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `Upload failed: ${response.status}`);
+  while (attempts < maxRetries) {
+    try {
+      response = await fetch(`${CONFIG.workerUrl}/upload`, {
+        method: "POST",
+        body: formData,
+      });
+
+      // If success (200-299), break loop
+      if (response.ok) break;
+
+      // If client error (4xx), do not retry (unless 429 Too Many Requests)
+      if (
+        response.status >= 400 &&
+        response.status < 500 &&
+        response.status !== 429
+      ) {
+        throw new Error(`Upload failed with status: ${response.status}`);
+      }
+
+      // If server error (5xx) or 429, throw to trigger retry
+      throw new Error(`Server error: ${response.status}`);
+    } catch (error) {
+      lastError = error;
+      attempts++;
+      console.warn(`Upload attempt ${attempts} failed: ${error.message}`);
+
+      // If client error (4xx) that isn't 429, don't retry, just throw immediately
+      if (error.message.includes("Upload failed with status")) {
+        throw error;
+      }
+
+      if (attempts < maxRetries) {
+        // Wait with exponential backoff before retrying (1s, 2s, 4s)
+        const delay = Math.pow(2, attempts - 1) * 1000;
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        showToast(
+          `Riprovo il caricamento (${attempts}/${maxRetries})...`,
+          "info"
+        );
+      }
+    }
+  }
+
+  if (!response || !response.ok) {
+    if (response) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.error || `Upload failed after ${maxRetries} attempts`
+      );
+    }
+    throw lastError || new Error("Upload failed");
   }
 
   const result = await response.json();
