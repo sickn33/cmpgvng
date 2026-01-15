@@ -40,6 +40,11 @@ export default {
         return await handleUpload(request, env, corsHeaders);
       }
 
+      // Gallery endpoint - list files with thumbnails
+      if (url.pathname === "/gallery" && request.method === "GET") {
+        return await handleGallery(request, env, corsHeaders);
+      }
+
       // 404 for unknown routes
       return new Response(JSON.stringify({ error: "Not found" }), {
         status: 404,
@@ -268,4 +273,83 @@ function sanitizeFileName(name) {
     .replace(/[\\/:*?"<>|]/g, "_")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+/**
+ * Handle gallery request - list files with thumbnails
+ */
+async function handleGallery(request, env, corsHeaders) {
+  // Get password from query string
+  const url = new URL(request.url);
+  const password = url.searchParams.get("password");
+
+  if (!password || password !== env.SITE_PASSWORD) {
+    return new Response(JSON.stringify({ error: "Password non valida" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  // Get fresh access token
+  const accessToken = await getAccessToken(env);
+
+  // List files in the folder
+  const listUrl = `${GRAPH_API_BASE}/drives/${env.ONEDRIVE_DRIVE_ID}/items/${env.ONEDRIVE_FOLDER_ID}/children?$select=id,name,size,file,image,video,createdDateTime,@microsoft.graph.downloadUrl&$expand=thumbnails&$top=100`;
+
+  const response = await fetch(listUrl, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error("List files failed:", error);
+    throw new Error("Failed to list files");
+  }
+
+  const data = await response.json();
+
+  // Transform the response to just what we need
+  const items = (data.value || [])
+    .filter(
+      (item) =>
+        item.file &&
+        (item.file.mimeType.startsWith("image/") ||
+          item.file.mimeType.startsWith("video/"))
+    )
+    .map((item) => {
+      // Get thumbnail URL (prefer large, fallback to medium, then small)
+      let thumbnailUrl = null;
+      if (item.thumbnails && item.thumbnails.length > 0) {
+        const thumb = item.thumbnails[0];
+        thumbnailUrl =
+          thumb.large?.url || thumb.medium?.url || thumb.small?.url;
+      }
+
+      return {
+        id: item.id,
+        name: item.name,
+        size: item.size,
+        mimeType: item.file.mimeType,
+        isVideo: item.file.mimeType.startsWith("video/"),
+        createdDateTime: item.createdDateTime,
+        thumbnailUrl: thumbnailUrl,
+        downloadUrl: item["@microsoft.graph.downloadUrl"],
+        width: item.image?.width || item.video?.width,
+        height: item.image?.height || item.video?.height,
+      };
+    })
+    .sort((a, b) => new Date(b.createdDateTime) - new Date(a.createdDateTime)); // Newest first
+
+  return new Response(
+    JSON.stringify({
+      success: true,
+      count: items.length,
+      items: items,
+    }),
+    {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    }
+  );
 }

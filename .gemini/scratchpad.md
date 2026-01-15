@@ -1,185 +1,59 @@
-# OneDrive Upload Web Interface
+# CMP GVNG - OneDrive Gallery Implementation
 
 ## Background and Motivation
 
-L'utente vuole creare un'interfaccia web semplice e user-friendly per permettere ai suoi amici di caricare foto e video su un drive condiviso OneDrive. Il problema principale è che l'interfaccia nativa di OneDrive è complessa per utenti non tecnici.
+L'utente vuole aggiungere una galleria immagini al sito https://sickn33.github.io/cmpgvng/ che attualmente permette solo di **caricare** file su OneDrive. La nuova funzionalità deve:
 
-**Obiettivi:**
-
-1. Interfaccia web semplice e intuitiva
-2. Hosting gratuito su GitHub Pages
-3. Upload diretto a OneDrive tramite Microsoft Graph API
-4. ~~Accessibile a tutti gli amici senza login complesso~~ **NESSUN LOGIN PER GLI AMICI**
-
-**Vincoli tecnici identificati:**
-
-- GitHub Pages supporta solo contenuti statici (HTML, CSS, JS)
-- Microsoft Graph API richiede autenticazione OAuth 2.0
-- ~~Per una SPA, serve Azure AD App Registration con flow PKCE~~
-- I file vengono caricati tramite `PUT` a Microsoft Graph endpoint
-
-## 🔄 CAMBIO ARCHITETTURA (2026-01-15)
-
-**Problema:** L'approccio OAuth lato client NON funziona per utenti esterni. Anche con cartella condivisa, ogni utente deve avere account Microsoft e autenticarsi.
-
-**Nuova Soluzione:** Cloudflare Workers come backend proxy
-
-- Il Worker conserva il refresh token dell'owner
-- Gli utenti caricano file senza autenticazione
-- Il Worker gestisce l'upload su OneDrive per conto dell'owner
-
-Vedi `implementation_plan.md` per dettagli.
+- Mostrare le immagini già caricate su OneDrive
+- Integrarsi con il design esistente (glassmorphism, dark mode)
+- Essere semplice da implementare e mantenere
 
 ## Key Challenges and Analysis
 
-### Sfida 1: Autenticazione
+1. **Backend**: Il worker Cloudflare attuale ha solo endpoint `/upload`. Serve un nuovo endpoint `/gallery` per listare i file nella cartella OneDrive.
 
-**Opzioni:**
+2. **OneDrive API**: Usare Microsoft Graph API per:
 
-1. **Login individuale (OAuth)** - Ogni utente si autentica con il proprio account Microsoft
+   - Listare i file nella cartella (`GET /drives/{driveId}/items/{folderId}/children`)
+   - Ottenere thumbnail delle immagini (più veloce del download completo)
 
-   - Pro: Sicuro, audit trail
-   - Contro: Richiede account Microsoft, più complesso per gli utenti
+3. **Frontend**: Aggiungere:
 
-2. **Token pre-autorizzato (Non raccomandato)** - Token dell'owner nel frontend
+   - Sezione galleria con griglia responsive
+   - Lightbox per vedere le immagini a schermo intero
+   - Navigazione tra upload e galleria
 
-   - Pro: Zero login per gli utenti
-   - Contro: Molto insicuro, token esposto pubblicamente
-
-3. **Backend proxy (Raccomandato per produzione)** - Backend che gestisce auth
-   - Pro: Sicuro, flessibile
-   - Contro: Richiede hosting backend (non solo GitHub Pages)
-
-**Decisione:** Per un MVP hostato su GitHub Pages, useremo l'**opzione 1** (OAuth). Gli amici dovranno avere un account Microsoft (anche solo con email personale) e autenticarsi una volta. È il compromesso migliore tra sicurezza e semplicità.
-
-### Sfida 2: Permessi OneDrive
-
-Per caricare su una cartella condivisa, l'utente owner deve:
-
-1. Condividere la cartella con gli amici (già fatto)
-2. Gli amici devono avere permessi di modifica/upload
-
-L'API Microsoft Graph permette di caricare file usando:
-
-- `PUT /me/drive/items/{parent-item-id}:/{filename}:/content` (per file < 4MB)
-- Upload session per file > 4MB
-
-### Sfida 3: UX/UI
-
-- Design moderno e accattivante
-- Drag & drop per file
-- Progress bar durante upload
-- Preview per immagini
-- Responsive (mobile-friendly)
+4. **Tipo di galleria scelto**: **Griglia responsive con lightbox** - è il più semplice e funzionale.
 
 ## High-level Task Breakdown
 
-### Fase 1: Setup Progetto e Azure AD
-
-- [ ] Task 1.1: Registrare app su Azure AD Portal
-- [ ] Task 1.2: Configurare permessi API (Files.ReadWrite.All)
-- [ ] Task 1.3: Abilitare PKCE per SPA
-
-### Fase 2: Struttura Progetto
-
-- [ ] Task 2.1: Creare struttura base HTML/CSS/JS
-- [ ] Task 2.2: Integrare MSAL.js per autenticazione
-- [ ] Task 2.3: Integrare Microsoft Graph SDK
-
-### Fase 3: Implementazione Core
-
-- [ ] Task 3.1: Implementare login/logout con MSAL
-- [ ] Task 3.2: Implementare upload file semplice (< 4MB)
-- [ ] Task 3.3: Implementare upload file grandi (> 4MB) con resumable upload
-- [ ] Task 3.4: Implementare drag & drop
-
-### Fase 4: UI/UX Polish
-
-- [ ] Task 4.1: Design moderno (dark mode, glassmorphism)
-- [ ] Task 4.2: Progress bar e feedback visivo
-- [ ] Task 4.3: Preview immagini
-- [ ] Task 4.4: Mobile responsive
-
-### Fase 5: Deploy
-
-- [ ] Task 5.1: Setup GitHub Pages
-- [ ] Task 5.2: Configurare redirect URI su Azure AD
-- [ ] Task 5.3: Test end-to-end
+- [ ] Task 1: Aggiungere endpoint `/gallery` al worker Cloudflare
+  - Success: L'endpoint ritorna lista di file con thumbnail URLs
+- [ ] Task 2: Deploy del worker aggiornato
+  - Success: `curl https://cmpgvng-api.cmpgvng.workers.dev/gallery` ritorna JSON
+- [ ] Task 3: Creare HTML per la sezione galleria
+  - Success: Toggle tra "Carica" e "Galleria" visibile nell'interfaccia
+- [ ] Task 4: Creare CSS per griglia galleria e lightbox
+  - Success: Stile coerente con design esistente
+- [ ] Task 5: Creare JavaScript per fetch e rendering galleria
+  - Success: Immagini caricate e visualizzate correttamente
+- [ ] Task 6: Implementare lightbox per vista full-screen
+  - Success: Click su immagine apre vista grande con navigazione
+- [ ] Task 7: Test manuale end-to-end
+  - Success: Utente può vedere le immagini caricate
 
 ## Project Status Board
 
-### Da Fare
-
-- [ ] Creare implementation_plan.md dettagliato
-- [ ] Attendere approvazione utente
-
-### In Corso
-
-- [/] Analisi requisiti e ricerca API
-
-### Completato
-
-- [x] Ricerca skill rilevanti
-- [x] Ricerca Microsoft Graph API
-- [x] Identificazione flow autenticazione
+- [ ] Backend (Worker Cloudflare)
+- [ ] Frontend (HTML/CSS/JS)
+- [ ] Testing e verifica
 
 ## Executor's Feedback or Assistance Requests
 
-### 🔴 PROBLEMA ATTIVO: Utenti esterni non riescono a caricare file
-
-**Data:** 2026-01-15
-
-**Descrizione:** Gli utenti esterni con cui è stata condivisa la cartella non riescono a caricare file.
-
-**Indagine (seguendo systematic-debugging skill):**
-
-#### Fase 1: Root Cause Investigation
-
-**Flusso attuale in `upload.js`:**
-
-1. **Approccio 1 (ID diretti)**: Usa `driveId`/`folderId` hardcoded → funziona SOLO per owner
-2. **Approccio 2 (sharedWithMe)**: Cerca in "Condivisi con me" → dovrebbe funzionare per amici
-3. **Approccio 3 (share link)**: Usa share link encodato
-4. **Approccio 4 (fallback)**: Crea cartella nel drive utente
-
-**Possibili cause:**
-
-- [ ] La cartella non appare in "sharedWithMe" dell'utente (condivisione solo tramite link?)
-- [ ] Permessi solo lettura sulla cartella (Edit vs View)
-- [ ] Share link non ha permessi di scrittura
-- [ ] CSP blocca richieste (già aggiunto `*.sharepoint.com` e `*.microsoftpersonalcontent.com`)
-- [ ] Scopes API insufficienti (`Files.ReadWrite.All` dovrebbe bastare)
-
-**Informazioni necessarie dall'utente:**
-
-1. Che errore appare nella console del browser dell'utente esterno?
-2. La cartella è stata condivisa con permesso "Edit" o solo "View"?
-3. L'utente esterno vede la cartella in "Condivisi con me" nel suo OneDrive web?
-
-**Stato:** ✅ Fix implementata e deployata
-
-#### Fix Applicata (2026-01-15)
-
-Aggiunto header `Prefer: redeemSharingLink` alla chiamata `/shares/{encodedUrl}/driveItem` in `upload.js`.
-
-**Commit:** `784cd6f`
-
-**Da verificare:**
-
-1. L'utente esterno testa l'upload
-2. Se ancora non funziona, verificare che la cartella sia condivisa con permesso "Can edit"
-3. Se serve, aggiungere scope `Sites.ReadWrite.All` nell'app Azure AD
+_Nessuna richiesta al momento_
 
 ## Lessons
 
-1. **Microsoft Graph API** richiede Azure AD App Registration
-2. **MSAL.js 2.0+** supporta PKCE flow per SPA (più sicuro del vecchio Implicit Grant)
-3. **GitHub Pages** può hostare l'app ma richiede che tutta la logica sia client-side
-4. Per file > 4MB serve usare **upload session** (resumable upload)
-5. I permessi necessari sono `Files.ReadWrite.All` (delegated)
-
-## References
-
-- [Microsoft Graph File Upload](https://learn.microsoft.com/en-us/graph/api/driveitem-put-content)
-- [MSAL.js 2.0 SPA Tutorial](https://learn.microsoft.com/en-us/azure/active-directory/develop/tutorial-v2-javascript-auth-code)
-- [Microsoft Graph JavaScript SDK](https://github.com/microsoftgraph/msgraph-sdk-javascript)
+- Backup creato in: `cmpgvng-backup-20260115_133437`
+- Worker URL: `https://cmpgvng-api.cmpgvng.workers.dev`
+- Variabili ambiente necessarie: `ONEDRIVE_DRIVE_ID`, `ONEDRIVE_FOLDER_ID`

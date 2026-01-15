@@ -61,6 +61,26 @@
         </div>
       </header>
 
+      <!-- Navigation Tabs -->
+      <nav class="nav-tabs">
+        <button
+          class="nav-tab active"
+          id="tabUpload"
+          onclick="showSection('upload')"
+        >
+          <span class="tab-icon">📤</span>
+          Carica
+        </button>
+        <button
+          class="nav-tab"
+          id="tabGallery"
+          onclick="showSection('gallery')"
+        >
+          <span class="tab-icon">🖼️</span>
+          Galleria
+        </button>
+      </nav>
+
       <!-- Main Content -->
       <main class="main-content">
         <!-- Upload Section (shown immediately after password) -->
@@ -117,12 +137,50 @@
             <div class="completed-list" id="completedList"></div>
           </div>
         </section>
+
+        <!-- Gallery Section -->
+        <section class="gallery-section hidden" id="gallerySection">
+          <!-- Loading State -->
+          <div class="gallery-loading" id="galleryLoading">
+            <div class="loading-spinner"></div>
+            <p>Caricamento galleria...</p>
+          </div>
+
+          <!-- Empty State -->
+          <div class="gallery-empty hidden" id="galleryEmpty">
+            <span class="empty-icon">📭</span>
+            <h3>Nessuna immagine</h3>
+            <p>Carica qualche foto per vederla qui!</p>
+          </div>
+
+          <!-- Gallery Grid -->
+          <div class="gallery-grid hidden" id="galleryGrid"></div>
+        </section>
       </main>
 
       <!-- Footer -->
       <footer class="footer">
         <p>Creato con ❤️ per condividere i nostri momenti</p>
       </footer>
+    </div>
+
+    <!-- Lightbox Overlay -->
+    <div class="lightbox hidden" id="lightbox">
+      <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
+      <button class="lightbox-nav lightbox-prev" onclick="navigateLightbox(-1)">
+        ❮
+      </button>
+      <div class="lightbox-content">
+        <img id="lightboxImage" src="" alt="" />
+        <video id="lightboxVideo" controls style="display: none"></video>
+      </div>
+      <button class="lightbox-nav lightbox-next" onclick="navigateLightbox(1)">
+        ❯
+      </button>
+      <div class="lightbox-info">
+        <span id="lightboxTitle"></span>
+        <span id="lightboxCounter"></span>
+      </div>
     </div>
 
     <!-- Toast Notifications -->
@@ -133,6 +191,7 @@
     <script src="js/config.js"></script>
     <script src="js/upload.js"></script>
     <script src="js/ui.js"></script>
+    <script src="js/gallery.js"></script>
     <script src="js/app.js"></script>
   </body>
 </html>
