@@ -11,7 +11,7 @@ let galleryLoaded = false;
  * Fetch gallery items from the API
  */
 async function fetchGallery() {
-  const password = sessionStorage.getItem("sitePassword");
+  const password = sessionStorage.getItem("cmpgvng_password");
   if (!password) {
     showToast("Sessione scaduta, ricarica la pagina", "error");
     return [];
