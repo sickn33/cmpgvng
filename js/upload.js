@@ -68,9 +68,24 @@ async function resolveShareLink() {
   try {
     const sharedItems = await client.api("/me/drive/sharedWithMe").get();
 
-    if (sharedItems.value) {
+    console.log(
+      "📋 Elementi trovati in sharedWithMe:",
+      sharedItems.value?.length || 0
+    );
+
+    if (sharedItems.value && sharedItems.value.length > 0) {
+      // Debug: show all shared items
+      console.log("📂 Cartelle condivise disponibili:");
+      sharedItems.value.forEach((item) => {
+        console.log(`   - "${item.name}" (folder: ${!!item.folder})`);
+      });
+
       for (const item of sharedItems.value) {
-        if (item.name === folderName && item.folder) {
+        // Match by name (case insensitive)
+        if (
+          item.name.toLowerCase() === folderName.toLowerCase() &&
+          item.folder
+        ) {
           targetDriveItem = {
             driveId: item.remoteItem.parentReference.driveId,
             itemId: item.remoteItem.id,
@@ -81,7 +96,7 @@ async function resolveShareLink() {
         }
       }
     }
-    console.log("⚠️ Cartella non trovata in sharedWithMe, provo share link...");
+    console.log(`⚠️ Cartella "${folderName}" non trovata in sharedWithMe`);
   } catch (error) {
     console.log("⚠️ Errore sharedWithMe:", error.message);
   }
