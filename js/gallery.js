@@ -137,13 +137,14 @@ function openLightbox(index) {
 
   // Update content
   if (item.isVideo) {
-    image.style.display = "none";
-    video.style.display = "block";
+    image.classList.add("hidden");
+    video.classList.remove("hidden");
     video.src = item.downloadUrl;
   } else {
-    video.style.display = "none";
+    video.classList.add("hidden");
+    video.pause();
     video.src = "";
-    image.style.display = "block";
+    image.classList.remove("hidden");
     image.src = item.downloadUrl || item.thumbnailUrl;
     image.alt = item.name;
   }
@@ -164,6 +165,11 @@ function closeLightbox() {
 
   lightbox.classList.add("hidden");
   document.body.style.overflow = "";
+
+  // Reset content state
+  const image = document.getElementById("lightboxImage");
+
+  if (image) image.src = ""; // Clear image to prevent flash on next open
 
   // Stop video if playing
   video.pause();
