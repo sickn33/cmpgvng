@@ -1,36 +1,38 @@
 /**
  * Password Gate Module
- * Simple client-side password protection for friends-only access
+ * Stores password for server-side verification
+ * The actual password is NOT stored in this file - verification happens on the Worker
  */
 
-const SITE_PASSWORD = "ECHOVIVE";
 const STORAGE_KEY = "cmpgvng_unlocked";
+const PASSWORD_KEY = "cmpgvng_password";
 
 /**
- * Check if user is already authenticated
+ * Check if user has entered a password this session
  */
 function isUnlocked() {
   return sessionStorage.getItem(STORAGE_KEY) === "true";
 }
 
 /**
- * Check entered password
+ * Store password and unlock the gate
+ * Actual verification happens on upload via Cloudflare Worker
  */
 function checkPassword() {
   const input = document.getElementById("passwordInput");
   const error = document.getElementById("passwordError");
 
-  if (input.value === SITE_PASSWORD) {
-    // Unlock and show app
+  const password = input.value.trim();
+
+  if (password.length > 0) {
+    // Store password for later use in uploads
+    sessionStorage.setItem(PASSWORD_KEY, password);
     sessionStorage.setItem(STORAGE_KEY, "true");
     unlockApp();
   } else {
-    // Show error
+    // Show error for empty password
     error.classList.remove("hidden");
-    input.value = "";
     input.focus();
-
-    // Shake animation
     input.classList.add("shake");
     setTimeout(() => input.classList.remove("shake"), 500);
   }
@@ -45,6 +47,14 @@ function unlockApp() {
 
   if (gate) gate.classList.add("hidden");
   if (app) app.classList.remove("hidden");
+}
+
+/**
+ * Clear stored password (for logout/error handling)
+ */
+function clearPassword() {
+  sessionStorage.removeItem(PASSWORD_KEY);
+  sessionStorage.removeItem(STORAGE_KEY);
 }
 
 /**
@@ -76,3 +86,4 @@ document.addEventListener("DOMContentLoaded", initPasswordGate);
 // Export
 window.checkPassword = checkPassword;
 window.unlockApp = unlockApp;
+window.clearPassword = clearPassword;

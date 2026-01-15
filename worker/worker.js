@@ -83,6 +83,16 @@ function handleCors(env) {
 async function handleUpload(request, env, corsHeaders) {
   // Parse multipart form data
   const formData = await request.formData();
+
+  // Verify password first
+  const password = formData.get("password");
+  if (!password || password !== env.SITE_PASSWORD) {
+    return new Response(JSON.stringify({ error: "Password non valida" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const file = formData.get("file");
 
   if (!file) {

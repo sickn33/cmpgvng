@@ -146,15 +146,16 @@ async function uploadAll() {
   }
 }
 
-/**
- * Upload a single file via Cloudflare Worker
- */
 async function uploadFile(fileItem) {
   const file = fileItem.file;
+
+  // Get password from sessionStorage (set by password gate)
+  const password = sessionStorage.getItem("cmpgvng_password") || "";
 
   // Create FormData
   const formData = new FormData();
   formData.append("file", file);
+  formData.append("password", password);
 
   // Upload to Worker
   const response = await fetch(`${CONFIG.workerUrl}/upload`, {
