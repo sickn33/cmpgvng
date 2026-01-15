@@ -23,7 +23,7 @@ const CONFIG = {
   oneDrive: {
     // Sharing link to the folder
     shareLink:
-      "https://zx3kf-my.sharepoint.com/:f:/g/personal/sickn33_zx3kf_onmicrosoft_com/IgC6rwobP4XZRZNcEh2A8OabARgaXO3fMrqeVOS6FgtX7BE",
+      "https://zx3kf-my.sharepoint.com/:f:/g/personal/sickn33_zx3kf_onmicrosoft_com/IgC6rwobP4XZRZNcEh2A8OabAezcKJbhtB58MIR52lEA-1U",
 
     // Direct IDs (used as primary method)
     driveId:
