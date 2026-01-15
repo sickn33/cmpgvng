@@ -11,15 +11,37 @@ let galleryLoaded = false;
  * Fetch gallery items from the API
  */
 async function fetchGallery() {
+  // DEBUG: Log sessionStorage state
+  console.log(
+    "[Gallery Debug] sessionStorage keys:",
+    Object.keys(sessionStorage)
+  );
+  console.log(
+    "[Gallery Debug] cmpgvng_password:",
+    sessionStorage.getItem("cmpgvng_password")
+  );
+  console.log(
+    "[Gallery Debug] cmpgvng_unlocked:",
+    sessionStorage.getItem("cmpgvng_unlocked")
+  );
+
   const password = sessionStorage.getItem("cmpgvng_password");
   if (!password) {
+    console.error("[Gallery Debug] Password NOT found in sessionStorage!");
     showToast("Sessione scaduta, ricarica la pagina", "error");
     return [];
   }
 
+  console.log(
+    "[Gallery Debug] Making API request to:",
+    `${CONFIG.workerUrl}/gallery`
+  );
+
   const response = await fetch(
     `${CONFIG.workerUrl}/gallery?password=${encodeURIComponent(password)}`
   );
+
+  console.log("[Gallery Debug] API response status:", response.status);
 
   if (!response.ok) {
     const error = await response.json();
@@ -27,6 +49,7 @@ async function fetchGallery() {
   }
 
   const data = await response.json();
+  console.log("[Gallery Debug] Got items:", data.items?.length || 0);
   return data.items || [];
 }
 
