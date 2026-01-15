@@ -1,194 +1,14 @@
 /**
  * Upload Module
- * Handles file uploads to OneDrive using Microsoft Graph API
- * Uses sharing link approach for public shared folders
+ * Handles file uploads via Cloudflare Worker
+ * No authentication required - worker handles OneDrive auth
  */
 
 // File queue management
 let fileQueue = [];
 let uploadInProgress = false;
-let currentUploadIndex = 0;
 let totalBytesUploaded = 0;
 let totalBytesToUpload = 0;
-
-// Cached target folder info (resolved from share link)
-let targetDriveItem = null;
-
-/**
- * Encode sharing URL for Graph API
- * See: https://learn.microsoft.com/en-us/graph/api/shares-get
- */
-function encodeSharingUrl(url) {
-  // First encode the URL to handle special characters
-  const utf8Bytes = new TextEncoder().encode(url);
-  let binaryString = "";
-  utf8Bytes.forEach((byte) => (binaryString += String.fromCharCode(byte)));
-
-  // Base64 encode and make URL-safe
-  const base64 = btoa(binaryString)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-
-  const encoded = "u!" + base64;
-  console.log("🔐 URL originale:", url);
-  console.log("🔐 URL encodato:", encoded);
-  return encoded;
-}
-
-/**
- * Resolve the target folder - tries multiple approaches
- */
-async function resolveShareLink() {
-  if (targetDriveItem) {
-    return targetDriveItem; // Use cached value
-  }
-
-  const client = getGraphClient();
-  const folderName = CONFIG.oneDrive.folderName || "CMP GVNG";
-
-  // Approach 1: Try direct IDs if configured (works for owner)
-  if (CONFIG.oneDrive.driveId && CONFIG.oneDrive.folderId) {
-    console.log("🔗 Tentativo con ID diretti...");
-    try {
-      const folder = await client
-        .api(
-          `/drives/${CONFIG.oneDrive.driveId}/items/${CONFIG.oneDrive.folderId}`
-        )
-        .get();
-
-      targetDriveItem = {
-        driveId: CONFIG.oneDrive.driveId,
-        itemId: CONFIG.oneDrive.folderId,
-        name: folder.name,
-      };
-      console.log("✅ Cartella trovata con ID:", folder.name);
-      return targetDriveItem;
-    } catch (error) {
-      console.log(
-        "⚠️ ID diretti non funzionano, cerco in sharedWithMe...",
-        error.message
-      );
-    }
-  }
-
-  // Approach 2: Search in "Shared with me" (works for friends)
-  console.log("🔍 Cerco in 'Condivisi con me'...");
-  try {
-    const sharedItems = await client.api("/me/drive/sharedWithMe").get();
-
-    console.log(
-      "📋 Elementi trovati in sharedWithMe:",
-      sharedItems.value?.length || 0
-    );
-
-    if (sharedItems.value && sharedItems.value.length > 0) {
-      // Debug: show all shared items
-      console.log("📂 Cartelle condivise disponibili:");
-      sharedItems.value.forEach((item) => {
-        console.log(`   - "${item.name}" (folder: ${!!item.folder})`);
-      });
-
-      for (const item of sharedItems.value) {
-        // Match by name (case insensitive)
-        if (
-          item.name.toLowerCase() === folderName.toLowerCase() &&
-          item.folder
-        ) {
-          targetDriveItem = {
-            driveId: item.remoteItem.parentReference.driveId,
-            itemId: item.remoteItem.id,
-            name: item.name,
-          };
-          console.log("✅ Cartella trovata in sharedWithMe:", item.name);
-          return targetDriveItem;
-        }
-      }
-    }
-    console.log(`⚠️ Cartella "${folderName}" non trovata in sharedWithMe`);
-  } catch (error) {
-    console.log("⚠️ Errore sharedWithMe:", error.message);
-  }
-
-  // Approach 3: Try share link
-  const shareLink = CONFIG.oneDrive.shareLink;
-  if (shareLink) {
-    console.log("🔗 Tentativo con share link...");
-    try {
-      const encodedUrl = encodeSharingUrl(shareLink);
-      const sharedItem = await client
-        .api(`/shares/${encodedUrl}/driveItem`)
-        .header("Prefer", "redeemSharingLink")
-        .get();
-
-      targetDriveItem = {
-        driveId: sharedItem.parentReference.driveId,
-        itemId: sharedItem.id,
-        name: sharedItem.name,
-      };
-      console.log("✅ Cartella trovata via share link:", sharedItem.name);
-      return targetDriveItem;
-    } catch (error) {
-      console.error("❌ Share link ERRORE COMPLETO:", error);
-      console.error("❌ Status code:", error.statusCode);
-      console.error("❌ Error code:", error.code);
-      console.error("❌ Request ID:", error.requestId);
-      console.log(
-        "⚠️ Share link non funziona, creo cartella locale...",
-        error.message
-      );
-    }
-  }
-
-  // Approach 4: Fallback - create folder in user's drive
-  return await createFallbackFolder();
-}
-
-/**
- * Create fallback folder in user's drive
- */
-async function createFallbackFolder() {
-  const client = getGraphClient();
-  const folderName = CONFIG.oneDrive.folderName || "CMP GVNG";
-
-  try {
-    // First check if it exists
-    const existing = await client
-      .api("/me/drive/root/children")
-      .filter(`name eq '${folderName}'`)
-      .get();
-
-    if (existing.value && existing.value.length > 0) {
-      const folder = existing.value[0];
-      targetDriveItem = {
-        driveId: null,
-        itemId: folder.id,
-        name: folder.name,
-        isFallback: true,
-      };
-      console.log("✅ Cartella esistente trovata:", folder.name);
-      return targetDriveItem;
-    }
-
-    // Create new folder
-    const newFolder = await client.api("/me/drive/root/children").post({
-      name: folderName,
-      folder: {},
-      "@microsoft.graph.conflictBehavior": "rename",
-    });
-
-    targetDriveItem = {
-      driveId: null,
-      itemId: newFolder.id,
-      name: newFolder.name,
-      isFallback: true,
-    };
-    console.log("✅ Cartella creata:", newFolder.name);
-    return targetDriveItem;
-  } catch (error) {
-    throw new Error("Impossibile creare cartella di backup: " + error.message);
-  }
-}
 
 /**
  * Add files to the upload queue
@@ -278,22 +98,14 @@ async function uploadAll() {
     return;
   }
 
-  if (!isAuthenticated()) {
-    showToast("Devi effettuare il login prima", "error");
-    return;
-  }
-
-  // Resolve share link first
-  showToast("🔗 Connessione alla cartella condivisa...", "info");
-  try {
-    await resolveShareLink();
-  } catch (error) {
-    showToast("Errore: " + error.message, "error");
+  // Check config
+  const configErrors = validateConfig();
+  if (configErrors.length > 0) {
+    showToast(configErrors[0], "error");
     return;
   }
 
   uploadInProgress = true;
-  currentUploadIndex = 0;
   totalBytesUploaded = 0;
   totalBytesToUpload = pendingFiles.reduce((acc, f) => acc + f.file.size, 0);
 
@@ -303,7 +115,6 @@ async function uploadAll() {
   for (let i = 0; i < fileQueue.length; i++) {
     if (fileQueue[i].status !== "pending") continue;
 
-    currentUploadIndex = i;
     fileQueue[i].status = "uploading";
     renderFileQueue();
 
@@ -316,7 +127,7 @@ async function uploadAll() {
       console.error("Upload failed:", error);
       fileQueue[i].status = "error";
       fileQueue[i].error = error.message;
-      showToast(`Errore caricamento: ${fileQueue[i].name}`, "error");
+      showToast(`Errore: ${error.message}`, "error");
     }
 
     renderFileQueue();
@@ -336,122 +147,33 @@ async function uploadAll() {
 }
 
 /**
- * Upload a single file
+ * Upload a single file via Cloudflare Worker
  */
 async function uploadFile(fileItem) {
   const file = fileItem.file;
-  const fileName = sanitizeFileName(file.name);
-  const chunkSize = CONFIG.upload.chunkSizeMB * 1024 * 1024;
 
-  // Small files (< 4MB) - simple upload
-  if (file.size < 4 * 1024 * 1024) {
-    return await uploadSmallFile(file, fileName, fileItem);
+  // Create FormData
+  const formData = new FormData();
+  formData.append("file", file);
+
+  // Upload to Worker
+  const response = await fetch(`${CONFIG.workerUrl}/upload`, {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Upload failed: ${response.status}`);
   }
 
-  // Large files - use upload session
-  return await uploadLargeFile(file, fileName, fileItem, chunkSize);
-}
+  const result = await response.json();
 
-/**
- * Upload small file (< 4MB)
- */
-async function uploadSmallFile(file, fileName, fileItem) {
-  const client = getGraphClient();
-  const path = getUploadPath(fileName);
-
-  const response = await client.api(path).putStream(file);
-
+  // Update progress
   totalBytesUploaded += file.size;
   updateProgressBar((totalBytesUploaded / totalBytesToUpload) * 100);
 
-  return response;
-}
-
-/**
- * Upload large file using upload session
- */
-async function uploadLargeFile(file, fileName, fileItem, chunkSize) {
-  const client = getGraphClient();
-  const sessionUrl = getSessionUrl(fileName);
-
-  const sessionResponse = await client.api(sessionUrl).post({
-    item: {
-      "@microsoft.graph.conflictBehavior": "rename",
-    },
-  });
-
-  const uploadUrl = sessionResponse.uploadUrl;
-  let uploadedBytes = 0;
-  const fileSize = file.size;
-
-  while (uploadedBytes < fileSize) {
-    const chunkStart = uploadedBytes;
-    const chunkEnd = Math.min(uploadedBytes + chunkSize, fileSize);
-    const chunk = file.slice(chunkStart, chunkEnd);
-
-    const response = await fetch(uploadUrl, {
-      method: "PUT",
-      headers: {
-        "Content-Length": chunk.size,
-        "Content-Range": `bytes ${chunkStart}-${chunkEnd - 1}/${fileSize}`,
-      },
-      body: chunk,
-    });
-
-    if (!response.ok) {
-      throw new Error(`Upload failed: ${response.statusText}`);
-    }
-
-    uploadedBytes = chunkEnd;
-    totalBytesUploaded += chunk.size;
-    fileItem.progress = Math.round((uploadedBytes / fileSize) * 100);
-    updateProgressBar((totalBytesUploaded / totalBytesToUpload) * 100);
-    renderFileQueue();
-  }
-
-  return true;
-}
-
-/**
- * Get the upload path for a file
- */
-function getUploadPath(fileName) {
-  if (!targetDriveItem) {
-    return `/me/drive/root:/${fileName}:/content`;
-  }
-
-  if (targetDriveItem.driveId) {
-    // Shared folder
-    return `/drives/${targetDriveItem.driveId}/items/${targetDriveItem.itemId}:/${fileName}:/content`;
-  }
-
-  // User's own drive
-  return `/me/drive/items/${targetDriveItem.itemId}:/${fileName}:/content`;
-}
-
-/**
- * Get the session URL for large file upload
- */
-function getSessionUrl(fileName) {
-  if (!targetDriveItem) {
-    return `/me/drive/root:/${fileName}:/createUploadSession`;
-  }
-
-  if (targetDriveItem.driveId) {
-    return `/drives/${targetDriveItem.driveId}/items/${targetDriveItem.itemId}:/${fileName}:/createUploadSession`;
-  }
-
-  return `/me/drive/items/${targetDriveItem.itemId}:/${fileName}:/createUploadSession`;
-}
-
-/**
- * Sanitize file name for upload
- */
-function sanitizeFileName(name) {
-  return name
-    .replace(/[\\/:*?"<>|]/g, "_")
-    .replace(/\s+/g, " ")
-    .trim();
+  return result;
 }
 
 /**
@@ -481,5 +203,4 @@ window.removeFromQueue = removeFromQueue;
 window.uploadAll = uploadAll;
 window.formatFileSize = formatFileSize;
 window.getFilePreviewUrl = getFilePreviewUrl;
-window.resolveShareLink = resolveShareLink;
 window.fileQueue = fileQueue;

@@ -9,14 +9,26 @@ L'utente vuole creare un'interfaccia web semplice e user-friendly per permettere
 1. Interfaccia web semplice e intuitiva
 2. Hosting gratuito su GitHub Pages
 3. Upload diretto a OneDrive tramite Microsoft Graph API
-4. Accessibile a tutti gli amici senza login complesso
+4. ~~Accessibile a tutti gli amici senza login complesso~~ **NESSUN LOGIN PER GLI AMICI**
 
 **Vincoli tecnici identificati:**
 
 - GitHub Pages supporta solo contenuti statici (HTML, CSS, JS)
 - Microsoft Graph API richiede autenticazione OAuth 2.0
-- Per una SPA, serve Azure AD App Registration con flow PKCE
+- ~~Per una SPA, serve Azure AD App Registration con flow PKCE~~
 - I file vengono caricati tramite `PUT` a Microsoft Graph endpoint
+
+## 🔄 CAMBIO ARCHITETTURA (2026-01-15)
+
+**Problema:** L'approccio OAuth lato client NON funziona per utenti esterni. Anche con cartella condivisa, ogni utente deve avere account Microsoft e autenticarsi.
+
+**Nuova Soluzione:** Cloudflare Workers come backend proxy
+
+- Il Worker conserva il refresh token dell'owner
+- Gli utenti caricano file senza autenticazione
+- Il Worker gestisce l'upload su OneDrive per conto dell'owner
+
+Vedi `implementation_plan.md` per dettagli.
 
 ## Key Challenges and Analysis
 

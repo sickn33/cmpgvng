@@ -1,0 +1,18 @@
+name = "cmpgvng-api"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+# Account ID will be set by wrangler login
+# account_id = ""
+
+[vars]
+# Non-secret configuration
+CORS_ORIGIN = "https://sickn33.github.io"
+MAX_FILE_SIZE_MB = "500"
+ONEDRIVE_DRIVE_ID = "b!zLuElr4ANkOzaCMUCo3ydAMREhc0rexBm-NcSpCh0sAXIfhYVm2jSImpjTuGNiLM"
+ONEDRIVE_FOLDER_ID = "01RQILE7F2V4FBWP4F3FCZGXASDWAPBZU3"
+
+# Secrets (set via `wrangler secret put VARIABLE_NAME`):
+# - AZURE_CLIENT_ID
+# - AZURE_CLIENT_SECRET  
+# - AZURE_REFRESH_TOKEN

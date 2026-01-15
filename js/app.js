@@ -1,6 +1,6 @@
 /**
  * Main Application Entry Point
- * Initializes all modules on page load
+ * Simplified version - no authentication required
  */
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -10,7 +10,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const configErrors = validateConfig();
   if (configErrors.length > 0) {
     console.warn("⚠️ Configuration warnings:", configErrors);
-    // Show warning after a short delay
     setTimeout(() => {
       configErrors.forEach((error) => showToast(error, "warning"));
     }, 1000);
@@ -20,13 +19,22 @@ document.addEventListener("DOMContentLoaded", async () => {
   initUI();
   console.log("✅ UI initialized");
 
-  // Initialize authentication
-  const authSuccess = await initAuth();
-  if (authSuccess) {
-    console.log("✅ Auth initialized");
-  } else {
-    console.error("❌ Auth initialization failed");
-  }
+  // Show upload section immediately (no login required)
+  showUploadSection();
 
   console.log("🎉 App ready!");
 });
+
+/**
+ * Show the upload section (called after password gate)
+ */
+function showUploadSection() {
+  const welcomeSection = document.getElementById("welcomeSection");
+  const uploadSection = document.getElementById("uploadSection");
+
+  if (welcomeSection) welcomeSection.classList.add("hidden");
+  if (uploadSection) uploadSection.classList.remove("hidden");
+}
+
+// Export
+window.showUploadSection = showUploadSection;

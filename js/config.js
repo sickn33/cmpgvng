@@ -1,43 +1,16 @@
 /**
  * Configuration for OneDrive Upload App
- *
- * ⚠️ IMPORTANT: Update these values before deploying!
+ * Uses Cloudflare Worker for backend authentication
  */
 
 const CONFIG = {
-  // Azure AD Application Configuration
-  // Get these from: https://portal.azure.com > App Registrations
-  azure: {
-    clientId: "ffa3d5cd-74a4-401b-849e-44043d444d49", // Application (client) ID
-    authority: "https://login.microsoftonline.com/common", // Use 'common' for multi-tenant + personal
-    redirectUri: window.location.origin, // Will be the GitHub Pages URL
-  },
-
-  // Microsoft Graph API Scopes
-  scopes: [
-    "User.Read", // Read user profile
-    "Files.ReadWrite.All", // Read and write files in OneDrive
-  ],
-
-  // OneDrive Target Configuration
-  oneDrive: {
-    // Sharing link to the folder
-    shareLink:
-      "https://zx3kf-my.sharepoint.com/:f:/g/personal/sickn33_zx3kf_onmicrosoft_com/IgC6rwobP4XZRZNcEh2A8OabAezcKJbhtB58MIR52lEA-1U",
-
-    // Direct IDs (used as primary method)
-    driveId:
-      "b!zLuElr4ANkOzaCMUCo3ydAMREhc0rexBm-NcSpCh0sAXIfhYVm2jSImpjTuGNiLM",
-    folderId: "01RQILE7F2V4FBWP4F3FCZGXASDWAPBZU3",
-
-    // Fallback folder name (created in user's drive if all else fails)
-    folderName: "CMP GVNG",
-  },
+  // Cloudflare Worker URL
+  workerUrl: "https://cmpgvng-api.cmpgvng.workers.dev",
 
   // Upload Settings
   upload: {
     maxFileSizeMB: 500, // Maximum file size in MB
-    chunkSizeMB: 5, // Chunk size for large file uploads
+    chunkSizeMB: 50, // Chunk size for progress updates
     allowedTypes: ["image/*", "video/*"],
   },
 
@@ -51,8 +24,10 @@ const CONFIG = {
 function validateConfig() {
   const errors = [];
 
-  if (CONFIG.azure.clientId === "YOUR_CLIENT_ID_HERE") {
-    errors.push("Azure Client ID non configurato!");
+  if (CONFIG.workerUrl.includes("YOUR_SUBDOMAIN")) {
+    errors.push(
+      "Worker URL non configurato! Aggiorna config.js con l'URL del tuo worker."
+    );
   }
 
   return errors;

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self' https://alcdn.msauth.net https://cdn.jsdelivr.net https://login.microsoftonline.com https://graph.microsoft.com https://aadcdn.msauth.net; font-src 'self' data: https://sickn33.github.io; style-src 'self' 'unsafe-inline'; script-src 'self' https://alcdn.msauth.net https://cdn.jsdelivr.net https://browser.sentry-cdn.com https://aadcdn.msauth.net 'unsafe-inline'; img-src 'self' data: https://graph.microsoft.com blob:; connect-src 'self' https://login.microsoftonline.com https://graph.microsoft.com https://aadcdn.msauth.net https://*.sharepoint.com https://*.microsoftpersonalcontent.com;"
+      content="default-src 'self'; font-src 'self' data: https://sickn33.github.io; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://*.workers.dev;"
     />
     <title>Carica i tuoi momenti</title>
     <meta
@@ -23,12 +23,6 @@
     <!-- Styles -->
     <link rel="stylesheet" href="css/style.css" />
     <link rel="stylesheet" href="css/utilities.css" />
-
-    <!-- Microsoft Authentication Library -->
-    <script src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
-
-    <!-- Microsoft Graph SDK -->
-    <script src="https://cdn.jsdelivr.net/npm/@microsoft/microsoft-graph-client/lib/graph-js-sdk.js"></script>
   </head>
   <body>
     <!-- Password Gate -->
@@ -65,50 +59,12 @@
           <span class="logo-icon">📸</span>
           <h1>I Nostri Momenti</h1>
         </div>
-        <div class="user-section" id="userSection">
-          <button class="btn btn-primary" id="loginBtn" onclick="signIn()">
-            <span class="btn-icon">🔐</span>
-            Accedi con Microsoft
-          </button>
-          <div class="user-info" id="userInfo">
-            <span class="user-avatar" id="userAvatar">👤</span>
-            <span class="user-name" id="userName"></span>
-            <button class="btn btn-secondary btn-small" onclick="signOut()">
-              Esci
-            </button>
-          </div>
-        </div>
       </header>
 
       <!-- Main Content -->
       <main class="main-content">
-        <!-- Welcome Message (shown when not logged in) -->
-        <section class="welcome-section" id="welcomeSection">
-          <div class="glass-card welcome-card">
-            <h2>Benvenuto! 👋</h2>
-            <p>
-              Accedi con il tuo account Microsoft per caricare foto e video sul
-              nostro drive condiviso.
-            </p>
-            <div class="features">
-              <div class="feature">
-                <span class="feature-icon">🖼️</span>
-                <span>Foto</span>
-              </div>
-              <div class="feature">
-                <span class="feature-icon">🎬</span>
-                <span>Video</span>
-              </div>
-              <div class="feature">
-                <span class="feature-icon">⚡</span>
-                <span>Veloce</span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- Upload Section (shown when logged in) -->
-        <section class="upload-section hidden" id="uploadSection">
+        <!-- Upload Section (shown immediately after password) -->
+        <section class="upload-section" id="uploadSection">
           <!-- Drop Zone -->
           <div class="glass-card drop-zone" id="dropZone">
             <div class="drop-zone-content">
@@ -172,13 +128,11 @@
     <!-- Toast Notifications -->
     <div class="toast-container" id="toastContainer"></div>
 
-    <!-- Scripts -->
+    <!-- Scripts (no more MSAL or Graph SDK needed!) -->
     <script src="js/password-gate.js"></script>
     <script src="js/config.js"></script>
-    <script src="js/auth.js"></script>
     <script src="js/upload.js"></script>
     <script src="js/ui.js"></script>
-    <script src="js/admin-tools.js"></script>
     <script src="js/app.js"></script>
   </body>
 </html>
