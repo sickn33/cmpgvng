@@ -113,7 +113,38 @@ L'API Microsoft Graph permette di caricare file usando:
 
 ## Executor's Feedback or Assistance Requests
 
-Nessuno al momento. In attesa di approvazione del piano.
+### 🔴 PROBLEMA ATTIVO: Utenti esterni non riescono a caricare file
+
+**Data:** 2026-01-15
+
+**Descrizione:** Gli utenti esterni con cui è stata condivisa la cartella non riescono a caricare file.
+
+**Indagine (seguendo systematic-debugging skill):**
+
+#### Fase 1: Root Cause Investigation
+
+**Flusso attuale in `upload.js`:**
+
+1. **Approccio 1 (ID diretti)**: Usa `driveId`/`folderId` hardcoded → funziona SOLO per owner
+2. **Approccio 2 (sharedWithMe)**: Cerca in "Condivisi con me" → dovrebbe funzionare per amici
+3. **Approccio 3 (share link)**: Usa share link encodato
+4. **Approccio 4 (fallback)**: Crea cartella nel drive utente
+
+**Possibili cause:**
+
+- [ ] La cartella non appare in "sharedWithMe" dell'utente (condivisione solo tramite link?)
+- [ ] Permessi solo lettura sulla cartella (Edit vs View)
+- [ ] Share link non ha permessi di scrittura
+- [ ] CSP blocca richieste (già aggiunto `*.sharepoint.com` e `*.microsoftpersonalcontent.com`)
+- [ ] Scopes API insufficienti (`Files.ReadWrite.All` dovrebbe bastare)
+
+**Informazioni necessarie dall'utente:**
+
+1. Che errore appare nella console del browser dell'utente esterno?
+2. La cartella è stata condivisa con permesso "Edit" o solo "View"?
+3. L'utente esterno vede la cartella in "Condivisi con me" nel suo OneDrive web?
+
+**Stato:** ⏳ In attesa informazioni utente
 
 ## Lessons
 

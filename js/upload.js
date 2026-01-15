@@ -109,6 +109,7 @@ async function resolveShareLink() {
       const encodedUrl = encodeSharingUrl(shareLink);
       const sharedItem = await client
         .api(`/shares/${encodedUrl}/driveItem`)
+        .header("Prefer", "redeemSharingLink")
         .get();
 
       targetDriveItem = {
