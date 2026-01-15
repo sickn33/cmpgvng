@@ -9,6 +9,31 @@
 function initUI() {
   initDropZone();
   initFileInput();
+  triggerStaggeredAnimations();
+}
+
+/**
+ * Trigger staggered entry animations
+ */
+function triggerStaggeredAnimations() {
+  const elements = [
+    document.querySelector(".header"),
+    document.querySelector(".welcome-section"),
+    document.querySelector(".features"),
+    document.querySelector(".drop-zone-content"),
+    document.querySelector(".completed-card"),
+  ];
+
+  let delay = 0;
+  elements.forEach((el) => {
+    if (el) {
+      el.style.opacity = "0"; // Ensure hidden initially
+      setTimeout(() => {
+        el.classList.add("fade-in-stagger");
+      }, delay);
+      delay += 150; // 150ms delay between items
+    }
+  });
 }
 
 /**
