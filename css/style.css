@@ -1,26 +1,26 @@
 /* ===== CSS Variables ===== */
 :root {
-  /* Colors */
-  --bg-primary: #0f0f1a;
-  --bg-secondary: #1a1a2e;
-  --bg-card: rgba(30, 30, 50, 0.7);
-  --bg-card-hover: rgba(40, 40, 70, 0.8);
+  /* Colors - Earth Tones Palette */
+  --bg-primary: #172e15; /* Deep Forest Green */
+  --bg-secondary: #2a4028; /* Slightly lighter forest */
+  --bg-card: rgba(23, 46, 21, 0.6); /* Forest Glass */
+  --bg-card-hover: rgba(23, 46, 21, 0.8);
 
   --text-primary: #ffffff;
-  --text-secondary: #a0a0b0;
-  --text-muted: #606070;
+  --text-secondary: #d6d9a6; /* Pale Sage */
+  --text-muted: #9a9d51; /* Sage */
 
-  --accent-primary: #6366f1;
-  --accent-secondary: #8b5cf6;
-  --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --accent-primary: #c77825; /* Orange */
+  --accent-secondary: #b25c00; /* Burnt Orange */
+  --accent-gradient: linear-gradient(135deg, #c77825 0%, #b25c00 100%);
 
-  --success: #10b981;
-  --warning: #f59e0b;
-  --error: #ef4444;
+  --success: #a8bb7a; /* Light Green */
+  --warning: #cfd670; /* Lime */
+  --error: #e7a459; /* Light Orange - used for visibility on dark bg */
 
   /* Glassmorphism */
-  --glass-bg: rgba(255, 255, 255, 0.05);
-  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-bg: rgba(214, 217, 166, 0.05); /* Tinted with Pale Sage */
+  --glass-border: rgba(214, 217, 166, 0.1);
   --glass-blur: 20px;
 
   /* Spacing */
@@ -45,7 +45,7 @@
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
-  --shadow-glow: 0 0 40px rgba(99, 102, 241, 0.3);
+  --shadow-glow: 0 0 40px rgba(199, 120, 37, 0.2); /* Orange glow */
 
   /* Typography */
   --font-heading: "Outfit", -apple-system, BlinkMacSystemFont, sans-serif;
@@ -82,13 +82,13 @@ body::before {
   inset: 0;
   background: radial-gradient(
       circle at 20% 20%,
-      rgba(99, 102, 241, 0.12) 0%,
-      transparent 50%
+      rgba(199, 120, 37, 0.08) 0%,
+      /* Orange tint */ transparent 50%
     ),
     radial-gradient(
       circle at 80% 80%,
-      rgba(139, 92, 246, 0.12) 0%,
-      transparent 50%
+      rgba(214, 217, 166, 0.05) 0%,
+      /* Sage tint */ transparent 50%
     );
   z-index: -1;
 }
