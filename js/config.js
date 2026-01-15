@@ -23,17 +23,13 @@ const CONFIG = {
   // Per caricare su una cartella condivisa di un altro utente (es. Sickn33),
   // serve il Drive ID e il Folder ID specifici.
   oneDrive: {
-    // Option 1: Upload to logged-in user's root (Default)
-    // Leave driveId null
-
-    // Option 2: Upload to specific shared folder/drive
-    // You can find these using Graph Explorer (https://developer.microsoft.com/graph/graph-explorer)
-    // Query: https://graph.microsoft.com/v1.0/me/drive/root:/NomeCartella
-    driveId: null, // es. 'b!Pk9...'
-    folderId: null, // es. '01KM...'
+    // Cartella condivisa "CMP GVNG"
+    driveId:
+      "b!zLuElr4ANkOzaCMUCo3ydAMREhcOrexBm-NcSpCh0sAXlfhYVm2jSlmpjTuGNILM",
+    folderId: "01RQILE7F2V4FBWP4F3FCZGXASDWAPBZU3",
 
     // Fallback (solo per upload su PROPRIO drive):
-    folderPath: "/Momenti Condivisi",
+    folderPath: "/CMP GVNG",
   },
 
   // Upload Settings
