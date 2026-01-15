@@ -38,7 +38,7 @@
 
   /* Transitions */
   --transition-fast: 150ms ease;
-  --transition-normal: 250ms ease;
+  --transition-normal: 200ms ease;
   --transition-slow: 400ms ease;
 
   /* Shadows */
@@ -46,6 +46,10 @@
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
   --shadow-glow: 0 0 40px rgba(99, 102, 241, 0.3);
+
+  /* Typography */
+  --font-heading: "Outfit", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: "Work Sans", -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 /* ===== Reset & Base ===== */
@@ -63,8 +67,7 @@ html {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
-    Ubuntu, sans-serif;
+  font-family: var(--font-body);
   background: var(--bg-primary);
   color: var(--text-primary);
   min-height: 100vh;
@@ -72,32 +75,80 @@ body {
   overflow-x: hidden;
 }
 
-/* Background gradient animation */
+/* Background gradient - static for reduced motion, subtle pulse otherwise */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   background: radial-gradient(
       circle at 20% 20%,
-      rgba(99, 102, 241, 0.15) 0%,
+      rgba(99, 102, 241, 0.12) 0%,
       transparent 50%
     ),
     radial-gradient(
       circle at 80% 80%,
-      rgba(139, 92, 246, 0.15) 0%,
+      rgba(139, 92, 246, 0.12) 0%,
       transparent 50%
     );
   z-index: -1;
-  animation: backgroundPulse 8s ease-in-out infinite alternate;
 }
 
-@keyframes backgroundPulse {
-  0% {
-    opacity: 0.5;
-  }
-  100% {
-    opacity: 1;
-  }
+/* ===== SVG Icon System ===== */
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.icon-sm {
+  width: 18px;
+  height: 18px;
+}
+
+.icon-md {
+  width: 24px;
+  height: 24px;
+}
+
+.icon-lg {
+  width: 32px;
+  height: 32px;
+}
+
+.icon-xl {
+  width: 48px;
+  height: 48px;
+}
+
+.icon-xxl {
+  width: 64px;
+  height: 64px;
+}
+
+.icon.spinning {
+  animation: spin 1s linear infinite;
+}
+
+.heart-icon {
+  color: #ef4444;
+  vertical-align: middle;
+}
+
+/* ===== Headings use Outfit ===== */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+  font-weight: 600;
 }
 
 /* ===== App Container ===== */
@@ -314,18 +365,16 @@ body::before {
 }
 
 .drop-icon {
-  font-size: 4rem;
-  animation: float 3s ease-in-out infinite;
+  color: var(--accent-primary);
+  opacity: 0.8;
+  transition: opacity var(--transition-normal),
+    transform var(--transition-normal);
 }
 
-@keyframes float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
+.drop-zone:hover .drop-icon,
+.drop-zone.dragover .drop-icon {
+  opacity: 1;
+  transform: translateY(-5px);
 }
 
 .drop-zone h3 {
@@ -717,7 +766,6 @@ body::before {
 }
 
 .gallery-item:hover {
-  transform: scale(1.02);
   box-shadow: var(--shadow-lg), var(--shadow-glow);
   border-color: var(--accent-primary);
 }
@@ -895,4 +943,39 @@ body::before {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: var(--spacing-sm);
   }
+}
+
+/* ===== Accessibility: Reduced Motion ===== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .icon.spinning {
+    animation: none;
+  }
+
+  .drop-icon {
+    transition: none;
+  }
+
+  .gallery-item,
+  .gallery-item-overlay,
+  .btn,
+  .glass-card {
+    transition: none;
+  }
+}
+
+/* ===== Utility classes for colored icons ===== */
+.icon-error {
+  color: var(--error);
+}
+
+.icon-success {
+  color: var(--success);
 }

@@ -1,52 +1,86 @@
-# CMP GVNG - OneDrive Gallery Implementation
+# UI/UX Improvements - cmpgvng Photo Upload App
 
 ## Background and Motivation
 
-L'utente vuole aggiungere una galleria immagini al sito https://sickn33.github.io/cmpgvng/ che attualmente permette solo di **caricare** file su OneDrive. La nuova funzionalità deve:
+L'utente vuole migliorare e rendere più bella la UI dell'app "I Nostri Momenti", un'applicazione per caricare foto/video su OneDrive con galleria.
 
-- Mostrare le immagini già caricate su OneDrive
-- Integrarsi con il design esistente (glassmorphism, dark mode)
-- Essere semplice da implementare e mantenere
+**Stack attuale:**
+
+- HTML + CSS + JavaScript vanilla
+- Stile: Glassmorphism + Dark Mode
+- Funzionalità: Upload files, Gallery con lightbox, Password protection
 
 ## Key Challenges and Analysis
 
-1. **Backend**: Il worker Cloudflare attuale ha solo endpoint `/upload`. Serve un nuovo endpoint `/gallery` per listare i file nella cartella OneDrive.
+### Problemi identificati nella UI attuale:
 
-2. **OneDrive API**: Usare Microsoft Graph API per:
+1. **Emoji come icone** ❌
 
-   - Listare i file nella cartella (`GET /drives/{driveId}/items/{folderId}/children`)
-   - Ottenere thumbnail delle immagini (più veloce del download completo)
+   - Usa 📸, 🔒, 🚀, 📁, etc. come icone UI
+   - Problema: non professionale, poco accessibile
 
-3. **Frontend**: Aggiungere:
+2. **Font di sistema** ❌
 
-   - Sezione galleria con griglia responsive
-   - Lightbox per vedere le immagini a schermo intero
-   - Navigazione tra upload e galleria
+   - Usa `-apple-system, BlinkMacSystemFont, "Segoe UI"...`
+   - Problema: generico, nessuna personalità
 
-4. **Tipo di galleria scelto**: **Griglia responsive con lightbox** - è il più semplice e funzionale.
+3. **Animazioni continue** ⚠️
+
+   - `float` animation sull'icona drop (sempre attiva)
+   - `backgroundPulse` sul body (sempre attiva)
+   - Problema: distraente, non segue best practices
+
+4. **Hover effects con scale** ⚠️
+
+   - `.gallery-item:hover { transform: scale(1.02) }`
+   - Problema: può causare layout shift
+
+5. **Glassmorphism già buono** ✅
+   - Variabili CSS ben organizzate
+   - Backdrop blur implementato correttamente
+   - Gradients e shadows coerenti
 
 ## High-level Task Breakdown
 
-- [ ] Task 1: Aggiungere endpoint `/gallery` al worker Cloudflare
-  - Success: L'endpoint ritorna lista di file con thumbnail URLs
-- [ ] Task 2: Deploy del worker aggiornato
-  - Success: `curl https://cmpgvng-api.cmpgvng.workers.dev/gallery` ritorna JSON
-- [ ] Task 3: Creare HTML per la sezione galleria
-  - Success: Toggle tra "Carica" e "Galleria" visibile nell'interfaccia
-- [ ] Task 4: Creare CSS per griglia galleria e lightbox
-  - Success: Stile coerente con design esistente
-- [ ] Task 5: Creare JavaScript per fetch e rendering galleria
-  - Success: Immagini caricate e visualizzate correttamente
-- [ ] Task 6: Implementare lightbox per vista full-screen
-  - Success: Click su immagine apre vista grande con navigazione
-- [ ] Task 7: Test manuale end-to-end
-  - Success: Utente può vedere le immagini caricate
+- [ ] **Task 1: Sostituire emoji con icone SVG**
+
+  - Usare Lucide Icons (leggere, consistenti)
+  - Icone: lock, upload, folder, image, video, check, x, etc.
+  - Success: nessuna emoji nel markup, solo SVG inline
+
+- [ ] **Task 2: Aggiungere tipografia premium**
+
+  - Font: Outfit (headings) + Work Sans (body)
+  - Google Fonts import
+  - Success: font distintivi carichi correttamente
+
+- [ ] **Task 3: Migliorare animazioni**
+
+  - Rimuovere animazioni infinite decorative
+  - Aggiungere `prefers-reduced-motion` support
+  - Hover states senza layout shift
+  - Success: animazioni solo su interazione
+
+- [ ] **Task 4: Migliorare micro-interazioni**
+
+  - Hover feedback consistente
+  - Click feedback sui bottoni
+  - Transitions più fluide
+  - Success: feedback visivo su ogni elemento interattivo
+
+- [ ] **Task 5: Verificare e testare**
+  - Test manuale nel browser
+  - Verificare responsive
+  - Verificare accessibilità colori
 
 ## Project Status Board
 
-- [ ] Backend (Worker Cloudflare)
-- [ ] Frontend (HTML/CSS/JS)
-- [ ] Testing e verifica
+- [ ] Piano da approvare dall'utente
+- [ ] Task 1: Emoji → SVG icons
+- [ ] Task 2: Typography upgrade
+- [ ] Task 3: Animation refinement
+- [ ] Task 4: Micro-interactions polish
+- [ ] Task 5: Final verification
 
 ## Executor's Feedback or Assistance Requests
 
@@ -54,6 +88,7 @@ _Nessuna richiesta al momento_
 
 ## Lessons
 
-- Backup creato in: `cmpgvng-backup-20260115_133437`
-- Worker URL: `https://cmpgvng-api.cmpgvng.workers.dev`
-- Variabili ambiente necessarie: `ONEDRIVE_DRIVE_ID`, `ONEDRIVE_FOLDER_ID`
+- Sempre usare la skill `ui-ux-pro-max` per cercare stili, tipografia e UX guidelines prima di fare modifiche UI
+- Evitare emoji come icone UI (usare SVG da Lucide/Heroicons)
+- Evitare Inter/Roboto per tipografia (troppo generici)
+- Animazioni infinite solo per loading states
