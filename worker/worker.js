@@ -7,6 +7,7 @@
 const GRAPH_API_BASE = "https://graph.microsoft.com/v1.0";
 const TOKEN_ENDPOINT =
   "https://login.microsoftonline.com/common/oauth2/v2.0/token";
+const GOOGLE_DRIVE_API = "https://www.googleapis.com/drive/v3";
 const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks for large files
 
 /**
@@ -43,6 +44,11 @@ export default {
       // Gallery endpoint - list files with thumbnails
       if (url.pathname === "/gallery" && request.method === "GET") {
         return await handleGallery(request, env, corsHeaders);
+      }
+
+      // Google Drive to OneDrive transfer endpoint
+      if (url.pathname === "/upload-from-google" && request.method === "POST") {
+        return await handleGoogleDriveUpload(request, env, corsHeaders);
       }
 
       // 404 for unknown routes
@@ -369,4 +375,199 @@ async function handleGallery(request, env, corsHeaders) {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     }
   );
+}
+
+/**
+ * Handle Google Drive to OneDrive transfer
+ */
+async function handleGoogleDriveUpload(request, env, corsHeaders) {
+  const body = await request.json();
+  const { fileId, fileName, mimeType, googleAccessToken, password } = body;
+
+  // Verify password (can be passed in body or use session)
+  if (password && password !== env.SITE_PASSWORD) {
+    return new Response(JSON.stringify({ error: "Password non valida" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  if (!fileId || !googleAccessToken) {
+    return new Response(
+      JSON.stringify({ error: "Missing fileId or googleAccessToken" }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
+
+  try {
+    // Step 1: Download file from Google Drive
+    console.log(`Downloading file ${fileId} from Google Drive...`);
+
+    const googleFileResponse = await fetch(
+      `${GOOGLE_DRIVE_API}/files/${fileId}?alt=media`,
+      {
+        headers: {
+          Authorization: `Bearer ${googleAccessToken}`,
+        },
+      }
+    );
+
+    if (!googleFileResponse.ok) {
+      const error = await googleFileResponse.text();
+      console.error("Google Drive download failed:", error);
+      throw new Error(
+        `Failed to download from Google Drive: ${googleFileResponse.status}`
+      );
+    }
+
+    // Step 2: Get file content
+    const fileContent = await googleFileResponse.arrayBuffer();
+    const fileSize = fileContent.byteLength;
+
+    console.log(`Downloaded ${fileSize} bytes. Uploading to OneDrive...`);
+
+    // Step 3: Get OneDrive access token
+    const oneDriveToken = await getAccessToken(env);
+
+    // Step 4: Sanitize filename
+    const sanitizedName = sanitizeFileName(fileName || `file_${fileId}`);
+
+    // Step 5: Upload to OneDrive
+    let result;
+    if (fileSize < 4 * 1024 * 1024) {
+      // Small file - direct upload
+      result = await uploadSmallFileFromBuffer(
+        fileContent,
+        sanitizedName,
+        mimeType,
+        oneDriveToken,
+        env
+      );
+    } else {
+      // Large file - chunked upload
+      result = await uploadLargeFileFromBuffer(
+        fileContent,
+        sanitizedName,
+        oneDriveToken,
+        env
+      );
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        fileName: result.name,
+        size: result.size,
+        webUrl: result.webUrl,
+        source: "google-drive",
+      }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  } catch (error) {
+    console.error("Google Drive transfer error:", error);
+    return new Response(
+      JSON.stringify({ error: error.message || "Transfer failed" }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
+}
+
+/**
+ * Upload small file from ArrayBuffer (<4MB)
+ */
+async function uploadSmallFileFromBuffer(
+  buffer,
+  fileName,
+  mimeType,
+  accessToken,
+  env
+) {
+  const uploadUrl = `${GRAPH_API_BASE}/drives/${env.ONEDRIVE_DRIVE_ID}/items/${env.ONEDRIVE_FOLDER_ID}:/${fileName}:/content`;
+
+  const response = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": mimeType || "application/octet-stream",
+    },
+    body: buffer,
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error("Upload failed:", error);
+    throw new Error("Failed to upload file to OneDrive");
+  }
+
+  return await response.json();
+}
+
+/**
+ * Upload large file from ArrayBuffer using chunked upload
+ */
+async function uploadLargeFileFromBuffer(buffer, fileName, accessToken, env) {
+  // Create upload session
+  const sessionUrl = `${GRAPH_API_BASE}/drives/${env.ONEDRIVE_DRIVE_ID}/items/${env.ONEDRIVE_FOLDER_ID}:/${fileName}:/createUploadSession`;
+
+  const sessionResponse = await fetch(sessionUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      item: {
+        "@microsoft.graph.conflictBehavior": "rename",
+      },
+    }),
+  });
+
+  if (!sessionResponse.ok) {
+    const error = await sessionResponse.text();
+    console.error("Session creation failed:", error);
+    throw new Error("Failed to create upload session");
+  }
+
+  const session = await sessionResponse.json();
+  const uploadUrl = session.uploadUrl;
+
+  // Upload in chunks
+  const fileSize = buffer.byteLength;
+  let uploadedBytes = 0;
+  let result;
+
+  while (uploadedBytes < fileSize) {
+    const chunkStart = uploadedBytes;
+    const chunkEnd = Math.min(uploadedBytes + CHUNK_SIZE, fileSize);
+    const chunk = buffer.slice(chunkStart, chunkEnd);
+
+    const chunkResponse = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Length": chunk.byteLength.toString(),
+        "Content-Range": `bytes ${chunkStart}-${chunkEnd - 1}/${fileSize}`,
+      },
+      body: chunk,
+    });
+
+    if (!chunkResponse.ok) {
+      const error = await chunkResponse.text();
+      console.error("Chunk upload failed:", error);
+      throw new Error("Failed to upload file chunk");
+    }
+
+    result = await chunkResponse.json();
+    uploadedBytes = chunkEnd;
+  }
+
+  return result;
 }

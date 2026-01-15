@@ -279,6 +279,53 @@ h1 {
   box-shadow: 0 8px 16px rgba(199, 120, 37, 0.3);
 }
 
+.btn-secondary {
+  background: var(--glass-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-secondary:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+  transform: translateY(-1px);
+}
+
+/* Google Drive Button */
+.google-drive-btn {
+  position: relative;
+}
+
+.google-drive-btn .icon {
+  color: var(--accent-primary);
+  transition: color var(--transition-fast);
+}
+
+.google-drive-btn:hover .icon {
+  color: var(--accent-secondary);
+}
+
+/* Upload Buttons Container */
+.upload-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  justify-content: center;
+  margin-top: var(--spacing-sm);
+}
+
+@media (max-width: 480px) {
+  .upload-buttons {
+    flex-direction: column;
+  }
+
+  .upload-buttons .btn {
+    width: 100%;
+  }
+}
+
 /* ===== Refined Glass Cards ===== */
 .glass-card {
   background: var(--bg-card);
