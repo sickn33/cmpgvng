@@ -1,52 +1,52 @@
 /* ===== CSS Variables ===== */
 :root {
-  /* Colors - Coastal Luxury Palette */
-  --bg-primary: #14465c; /* Dark Teal (Sea Depth) */
-  --bg-secondary: #0f3a4d; /* Darker Teal */
+  /* Colors - Ancient Archive (Parchment) Palette */
+  --bg-primary: #f4f1ea; /* Linen/Cream Paper */
+  --bg-secondary: #ebe5da; /* Darker Linen */
 
-  --bg-card: rgba(20, 70, 92, 0.4); /* Teal Glass */
-  --bg-card-hover: rgba(20, 70, 92, 0.6);
+  --bg-card: rgba(255, 255, 255, 0.5); /* White Parchment Glass */
+  --bg-card-hover: rgba(255, 255, 255, 0.7);
 
-  --text-primary: #effbf1; /* Minty White */
-  --text-secondary: #cecf8d; /* Pale Olive */
-  --text-muted: #878e75; /* Sage Grey */
+  --text-primary: #2d2420; /* Dark Coffee Ink */
+  --text-secondary: #5d4037; /* Brown/Grey */
+  --text-muted: #8d6e63; /* Faded Ink */
 
-  --accent-primary: #ff882e; /* Vibrant Orange (Flowers) */
-  --accent-secondary: #e09470; /* Salmon */
-  --accent-gradient: linear-gradient(135deg, #ff882e 0%, #e09470 100%);
+  --accent-primary: #a0522d; /* Sienna (Sealing Wax) */
+  --accent-secondary: #8b4513; /* Saddle Brown */
+  --accent-gradient: linear-gradient(135deg, #a0522d 0%, #8b4513 100%);
 
-  --success: #878e75; /* Sage */
-  --warning: #cecf8d; /* Pale Olive */
-  --error: #fea5c6; /* Pink (Visibility on Teal) */
+  --success: #556b2f; /* Olive Green */
+  --warning: #b8860b; /* Dark Goldenrod */
+  --error: #800000; /* Maroon Ink */
 
-  /* Glassmorphism - Coastal */
-  --glass-bg: rgba(20, 70, 92, 0.3);
-  --glass-border: rgba(206, 207, 141, 0.1); /* Olive tint */
-  --glass-blur: 16px; /* Slightly blurrier for water effect */
+  /* Glassmorphism - Light Mode Parchment */
+  --glass-bg: rgba(255, 255, 255, 0.4);
+  --glass-border: rgba(160, 82, 45, 0.15); /* Sienna tint border */
+  --glass-blur: 12px;
 
   /* Spacing */
   --spacing-xs: 0.5rem;
   --spacing-sm: 1rem;
-  --spacing-md: 2rem; /* More generous spacing */
+  --spacing-md: 2rem;
   --spacing-lg: 3rem;
   --spacing-xl: 5rem;
 
   /* Border Radius */
-  --radius-sm: 4px; /* Sharper corners for elegance */
+  --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
   --radius-full: 50%;
 
   /* Transitions */
   --transition-fast: 200ms cubic-bezier(0.2, 0, 0.2, 1);
-  --transition-normal: 400ms cubic-bezier(0.2, 0, 0.2, 1); /* Elegant easing */
+  --transition-normal: 400ms cubic-bezier(0.2, 0, 0.2, 1);
   --transition-slow: 600ms cubic-bezier(0.2, 0, 0.2, 1);
 
-  /* Shadows */
-  --shadow-sm: 0 4px 20px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 60px rgba(255, 136, 46, 0.2); /* Orange glow */
+  /* Shadows - Subtle Ink Stains */
+  --shadow-sm: 0 4px 12px rgba(45, 36, 32, 0.08);
+  --shadow-md: 0 8px 24px rgba(45, 36, 32, 0.12);
+  --shadow-lg: 0 16px 40px rgba(45, 36, 32, 0.15);
+  --shadow-glow: 0 0 40px rgba(160, 82, 45, 0.1);
 
   /* Typography */
   --font-heading: "Cormorant Garamond", serif;
@@ -77,7 +77,7 @@ body {
   position: relative;
 }
 
-/* Noise Texture Overlay */
+/* Noise Texture Overlay - Adjusted for Light Mode */
 .noise-overlay {
   position: fixed;
   inset: 0;
@@ -85,24 +85,25 @@ body {
   height: 100%;
   z-index: 0;
   pointer-events: none;
-  opacity: 0.07;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='1'/%3E%3C/svg%3E");
+  opacity: 0.15; /* More visible on light bg to create paper grain */
+  mix-blend-mode: multiply; /* Blends better with cream */
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='1'/%3E%3C/svg%3E");
 }
 
-/* Background gradient - Subtle and atmospheric */
+/* Background gradient - Warm paper stains */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   background: radial-gradient(
-      circle at 30% 20%,
-      rgba(20, 70, 92, 0.8) 0%,
-      transparent 60%
+      circle at 20% 20%,
+      rgba(160, 82, 45, 0.05) 0%,
+      /* Sienna tint */ transparent 60%
     ),
     radial-gradient(
-      circle at 80% 90%,
-      rgba(255, 136, 46, 0.08) 0%,
-      transparent 50%
+      circle at 80% 80%,
+      rgba(45, 36, 32, 0.03) 0%,
+      /* Ink tint */ transparent 50%
     );
   z-index: -1;
 }
@@ -375,7 +376,7 @@ h1 {
 .drop-zone:hover,
 .drop-zone.dragover {
   border-color: var(--accent-primary);
-  background: rgba(199, 120, 37, 0.05); /* Orange tint */
+  background: rgba(160, 82, 45, 0.05); /* Sienna tint */
   box-shadow: none;
 }
 
@@ -534,10 +535,10 @@ h1 {
 @keyframes progressGlow {
   0%,
   100% {
-    box-shadow: 0 0 10px rgba(255, 136, 46, 0.3);
+    box-shadow: 0 0 10px rgba(160, 82, 45, 0.3);
   }
   50% {
-    box-shadow: 0 0 20px rgba(255, 136, 46, 0.6);
+    box-shadow: 0 0 20px rgba(160, 82, 45, 0.6);
   }
 }
 
@@ -563,7 +564,7 @@ h1 {
   align-items: center;
   gap: var(--spacing-sm);
   padding: var(--spacing-sm);
-  background: rgba(135, 142, 117, 0.1); /* Sage Tint */
+  background: rgba(85, 107, 47, 0.1); /* Olive Tint */
   border-radius: var(--radius-sm);
   border-left: 2px solid var(--success);
 }

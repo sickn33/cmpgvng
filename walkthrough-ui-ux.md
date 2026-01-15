@@ -1,30 +1,27 @@
 # UI/UX Improvements Walkthrough
 
-## Latest Update: "Coastal Luxury" Theme 🌊🪨
+## Latest Update: "Ancient Archive" Theme 📜🏺
 
-Applicata palette ispirata all'immagine "Seaside Stone Cottage" fornita dall'utente.
+Applicata palette "Parchment & Linen" per un look classico, caldo e tattile. (Light Mode).
 
-### Palette Applicata
+### Palette "Manoscritto"
 
-| Elemento       | Colore         | Hex       | Feeling                |
-| -------------- | -------------- | --------- | ---------------------- |
-| **Sfondo**     | Dark Teal      | `#14465C` | Profondità marina      |
-| **Testo**      | Minty White    | `#EFFBF1` | Luce e aria            |
-| **Secondario** | Pale Olive     | `#CECF8D` | Pietra bagnata         |
-| **Accento**    | Vibrant Orange | `#FF882E` | Fiori e dettagli caldi |
-| **Dettagli**   | Salmon/Sage    | `#E09470` | Sfumature naturali     |
+| Elemento    | Colore          | Hex                      | Feeling          |
+| ----------- | --------------- | ------------------------ | ---------------- |
+| **Sfondo**  | Linen/Cream     | `#F4F1EA`                | Carta antica     |
+| **Testo**   | Dark Coffee     | `#2D2420`                | Inchiostro scuro |
+| **Accento** | Sienna          | `#A0522D`                | Ceralacca/Cuoio  |
+| **Glass**   | White Parchment | `rgba(255,255,255, 0.5)` | Velina bianca    |
 
 render_diffs(file:///Users/nicco/Antigravity%20Projects/cmpgvng/css/style.css)
 
-### Concept maintained
+### Dettagli Tecnici
 
-Il layout "Organic Luxury" (Editorial) è stato mantenuto:
+- **Light Mode Transition**: Inversione completa del tema (da dark a light).
+- **Noise Texture**: Adattata per essere visibile su sfondo chiaro (`mix-blend-mode: multiply`).
+- **Typography**: `Cormorant Garamond` risalta come vero testo stampato su carta.
 
-- **Noise Texture**: Preservata per l'aspetto tattile.
-- **Typography**: Cormorant Garamond + DM Sans.
-- **Animation**: Staggered entry.
-
-Il risultato è un'interfaccia profonda, elegante e vibrante, che richiama un cottage di lusso sul mare.
+Il risultato è un'interfaccia che sembra un documento storico o un diario di bordo elegante.
 
 ---
 
