@@ -1,6 +1,7 @@
 /**
  * Upload Module
  * Handles file uploads to OneDrive using Microsoft Graph API
+ * Uses sharing link approach for public shared folders
  */
 
 // File queue management
@@ -10,92 +11,107 @@ let currentUploadIndex = 0;
 let totalBytesUploaded = 0;
 let totalBytesToUpload = 0;
 
-// Cached target folder info
-let targetFolderInfo = null;
+// Cached target folder info (resolved from share link)
+let targetDriveItem = null;
 
 /**
- * Find the shared folder "CMP GVNG" that was shared with the user
+ * Encode sharing URL for Graph API
+ * See: https://learn.microsoft.com/en-us/graph/api/shares-get
  */
-async function findSharedFolder() {
-  if (targetFolderInfo) {
-    return targetFolderInfo; // Use cached value
+function encodeSharingUrl(url) {
+  // Base64 encode the URL
+  const base64 = btoa(url)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+  return "u!" + base64;
+}
+
+/**
+ * Resolve the sharing link to get driveItem info
+ */
+async function resolveShareLink() {
+  if (targetDriveItem) {
+    return targetDriveItem; // Use cached value
   }
 
   const client = getGraphClient();
-  const folderName = "CMP GVNG";
+  const shareLink = CONFIG.oneDrive.shareLink;
+
+  if (!shareLink) {
+    throw new Error("Share link non configurato");
+  }
+
+  console.log("🔗 Risolvo link di condivisione...");
 
   try {
-    // First, try to find in user's own drive
-    console.log("🔍 Cercando cartella nel tuo drive...");
-    const ownFolder = await client
+    const encodedUrl = encodeSharingUrl(shareLink);
+
+    // Get the shared item info
+    const sharedItem = await client
+      .api(`/shares/${encodedUrl}/driveItem`)
+      .get();
+
+    targetDriveItem = {
+      driveId: sharedItem.parentReference.driveId,
+      itemId: sharedItem.id,
+      name: sharedItem.name,
+    };
+
+    console.log("✅ Cartella trovata:", targetDriveItem.name);
+    return targetDriveItem;
+  } catch (error) {
+    console.error("Errore risoluzione share link:", error);
+
+    // Fallback: create folder in user's drive
+    console.log("📁 Fallback: creo cartella nel tuo drive...");
+    return await createFallbackFolder();
+  }
+}
+
+/**
+ * Create fallback folder in user's drive
+ */
+async function createFallbackFolder() {
+  const client = getGraphClient();
+  const folderName = CONFIG.oneDrive.folderName || "CMP GVNG";
+
+  try {
+    // First check if it exists
+    const existing = await client
       .api("/me/drive/root/children")
       .filter(`name eq '${folderName}'`)
       .get();
 
-    if (ownFolder.value && ownFolder.value.length > 0) {
-      const folder = ownFolder.value[0];
-      targetFolderInfo = {
-        driveId: null, // null means use /me/drive
-        folderId: folder.id,
+    if (existing.value && existing.value.length > 0) {
+      const folder = existing.value[0];
+      targetDriveItem = {
+        driveId: null,
+        itemId: folder.id,
         name: folder.name,
+        isFallback: true,
       };
-      console.log("✅ Cartella trovata nel tuo drive:", folder.name);
-      return targetFolderInfo;
+      console.log("✅ Cartella esistente trovata:", folder.name);
+      return targetDriveItem;
     }
 
-    // If not found, check shared items
-    console.log("🔍 Cercando nelle cartelle condivise...");
-    const sharedItems = await client.api("/me/drive/sharedWithMe").get();
-
-    if (sharedItems.value) {
-      for (const item of sharedItems.value) {
-        if (item.name === folderName && item.folder) {
-          targetFolderInfo = {
-            driveId: item.remoteItem.parentReference.driveId,
-            folderId: item.remoteItem.id,
-            name: item.name,
-          };
-          console.log("✅ Cartella condivisa trovata:", item.name);
-          return targetFolderInfo;
-        }
-      }
-    }
-
-    // If still not found, create it in user's drive
-    console.log("📁 Creo cartella nel tuo drive...");
+    // Create new folder
     const newFolder = await client.api("/me/drive/root/children").post({
       name: folderName,
       folder: {},
-      "@microsoft.graph.conflictBehavior": "fail",
+      "@microsoft.graph.conflictBehavior": "rename",
     });
 
-    targetFolderInfo = {
+    targetDriveItem = {
       driveId: null,
-      folderId: newFolder.id,
+      itemId: newFolder.id,
       name: newFolder.name,
+      isFallback: true,
     };
     console.log("✅ Cartella creata:", newFolder.name);
-    return targetFolderInfo;
+    return targetDriveItem;
   } catch (error) {
-    console.error("Errore nella ricerca cartella:", error);
-    // Fallback: create folder in root
-    try {
-      const newFolder = await client.api("/me/drive/root/children").post({
-        name: folderName,
-        folder: {},
-        "@microsoft.graph.conflictBehavior": "rename",
-      });
-      targetFolderInfo = {
-        driveId: null,
-        folderId: newFolder.id,
-        name: newFolder.name,
-      };
-      return targetFolderInfo;
-    } catch (e) {
-      throw new Error(
-        "Impossibile trovare o creare la cartella di destinazione"
-      );
-    }
+    throw new Error("Impossibile creare cartella di backup: " + error.message);
   }
 }
 
@@ -133,7 +149,7 @@ function addFilesToQueue(files) {
       name: file.name,
       size: file.size,
       type: file.type,
-      status: "pending", // pending, uploading, success, error
+      status: "pending",
       progress: 0,
       error: null,
     });
@@ -173,16 +189,6 @@ function removeFromQueue(index) {
 }
 
 /**
- * Clear completed files from queue
- */
-function clearCompletedFiles() {
-  fileQueue = fileQueue.filter(
-    (f) => f.status !== "success" && f.status !== "error"
-  );
-  renderFileQueue();
-}
-
-/**
  * Upload all files in queue
  */
 async function uploadAll() {
@@ -202,10 +208,10 @@ async function uploadAll() {
     return;
   }
 
-  // Find target folder first
-  showToast("🔍 Cerco cartella di destinazione...", "info");
+  // Resolve share link first
+  showToast("🔗 Connessione alla cartella condivisa...", "info");
   try {
-    await findSharedFolder();
+    await resolveShareLink();
   } catch (error) {
     showToast("Errore: " + error.message, "error");
     return;
@@ -248,12 +254,9 @@ async function uploadAll() {
   const errorCount = fileQueue.filter((f) => f.status === "error").length;
 
   if (errorCount === 0) {
-    showToast(
-      `✅ Tutti i ${successCount} file caricati con successo!`,
-      "success"
-    );
+    showToast(`✅ ${successCount} file caricati con successo!`, "success");
   } else {
-    showToast(`${successCount} file caricati, ${errorCount} errori`, "warning");
+    showToast(`${successCount} caricati, ${errorCount} errori`, "warning");
   }
 }
 
@@ -294,8 +297,6 @@ async function uploadSmallFile(file, fileName, fileItem) {
  */
 async function uploadLargeFile(file, fileName, fileItem, chunkSize) {
   const client = getGraphClient();
-
-  // Construct session creation URL based on target folder
   const sessionUrl = getSessionUrl(fileName);
 
   const sessionResponse = await client.api(sessionUrl).post({
@@ -308,7 +309,6 @@ async function uploadLargeFile(file, fileName, fileItem, chunkSize) {
   let uploadedBytes = 0;
   const fileSize = file.size;
 
-  // Upload file in chunks
   while (uploadedBytes < fileSize) {
     const chunkStart = uploadedBytes;
     const chunkEnd = Math.min(uploadedBytes + chunkSize, fileSize);
@@ -329,11 +329,7 @@ async function uploadLargeFile(file, fileName, fileItem, chunkSize) {
 
     uploadedBytes = chunkEnd;
     totalBytesUploaded += chunk.size;
-
-    // Update file progress
     fileItem.progress = Math.round((uploadedBytes / fileSize) * 100);
-
-    // Update overall progress
     updateProgressBar((totalBytesUploaded / totalBytesToUpload) * 100);
     renderFileQueue();
   }
@@ -345,40 +341,38 @@ async function uploadLargeFile(file, fileName, fileItem, chunkSize) {
  * Get the upload path for a file
  */
 function getUploadPath(fileName) {
-  if (!targetFolderInfo) {
-    // Fallback to user's root
+  if (!targetDriveItem) {
     return `/me/drive/root:/${fileName}:/content`;
   }
 
-  if (targetFolderInfo.driveId) {
-    // Shared folder on another drive
-    return `/drives/${targetFolderInfo.driveId}/items/${targetFolderInfo.folderId}:/${fileName}:/content`;
+  if (targetDriveItem.driveId) {
+    // Shared folder
+    return `/drives/${targetDriveItem.driveId}/items/${targetDriveItem.itemId}:/${fileName}:/content`;
   }
 
   // User's own drive
-  return `/me/drive/items/${targetFolderInfo.folderId}:/${fileName}:/content`;
+  return `/me/drive/items/${targetDriveItem.itemId}:/${fileName}:/content`;
 }
 
 /**
  * Get the session URL for large file upload
  */
 function getSessionUrl(fileName) {
-  if (!targetFolderInfo) {
+  if (!targetDriveItem) {
     return `/me/drive/root:/${fileName}:/createUploadSession`;
   }
 
-  if (targetFolderInfo.driveId) {
-    return `/drives/${targetFolderInfo.driveId}/items/${targetFolderInfo.folderId}:/${fileName}:/createUploadSession`;
+  if (targetDriveItem.driveId) {
+    return `/drives/${targetDriveItem.driveId}/items/${targetDriveItem.itemId}:/${fileName}:/createUploadSession`;
   }
 
-  return `/me/drive/items/${targetFolderInfo.folderId}:/${fileName}:/createUploadSession`;
+  return `/me/drive/items/${targetDriveItem.itemId}:/${fileName}:/createUploadSession`;
 }
 
 /**
  * Sanitize file name for upload
  */
 function sanitizeFileName(name) {
-  // Remove invalid characters for OneDrive
   return name
     .replace(/[\\/:*?"<>|]/g, "_")
     .replace(/\s+/g, " ")
@@ -409,9 +403,8 @@ function getFilePreviewUrl(file) {
 // Export functions
 window.addFilesToQueue = addFilesToQueue;
 window.removeFromQueue = removeFromQueue;
-window.clearCompletedFiles = clearCompletedFiles;
 window.uploadAll = uploadAll;
 window.formatFileSize = formatFileSize;
 window.getFilePreviewUrl = getFilePreviewUrl;
-window.findSharedFolder = findSharedFolder;
+window.resolveShareLink = resolveShareLink;
 window.fileQueue = fileQueue;

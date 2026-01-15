@@ -20,16 +20,14 @@ const CONFIG = {
   ],
 
   // OneDrive Target Configuration
-  // Per caricare su una cartella condivisa di un altro utente (es. Sickn33),
-  // serve il Drive ID e il Folder ID specifici.
   oneDrive: {
-    // Cartella condivisa "CMP GVNG"
-    driveId:
-      "b!zLuElr4ANkOzaCMUCo3ydAMREhcOrexBm-NcSpCh0sAXlfhYVm2jSlmpjTuGNILM",
-    folderId: "01RQILE7F2V4FBWP4F3FCZGXASDWAPBZU3",
+    // Sharing link to the folder (this is the magic!)
+    // Anyone with this link and "Can Edit" permission can upload
+    shareLink:
+      "https://zx3kf-my.sharepoint.com/:f:/g/personal/sickn33_zx3kf_onmicrosoft_com/IgC6rwobP4XZRZNcEh2A8OabARgaXO3fMrqeVOS6FgtX7BE",
 
-    // Fallback (solo per upload su PROPRIO drive):
-    folderPath: "/CMP GVNG",
+    // Fallback folder name (created in user's drive if share link fails)
+    folderName: "CMP GVNG",
   },
 
   // Upload Settings
