@@ -405,19 +405,24 @@ function startPhotosSessionPolling() {
 async function fetchAndTransferPhotosMediaItems() {
   try {
     // Fetch items via worker proxy (to bypass CORS)
-    const response = await fetch(
-      `${
-        CONFIG.workerUrl
-      }/photos-session/${photosSessionId}/items?accessToken=${encodeURIComponent(
-        photosAccessToken
-      )}`
-    );
+    const url = `${
+      CONFIG.workerUrl
+    }/photos-session/${photosSessionId}/items?accessToken=${encodeURIComponent(
+      photosAccessToken
+    )}`;
+    console.log("Fetching Photos items from:", url);
+
+    const response = await fetch(url);
+    console.log("Photos items response status:", response.status);
 
     if (!response.ok) {
-      throw new Error("Failed to fetch media items");
+      const errorText = await response.text();
+      console.error("Photos items fetch error response:", errorText);
+      throw new Error(`Failed to fetch media items: ${response.status}`);
     }
 
     const data = await response.json();
+    console.log("Photos items data:", data);
     const mediaItems = data.mediaItems || [];
 
     if (mediaItems.length === 0) {
