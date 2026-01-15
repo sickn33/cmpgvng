@@ -73,13 +73,16 @@ function initDropZone() {
   // Handle dropped files
   dropZone.addEventListener("drop", handleDrop, false);
 
-  // Click to select files
-  // Click to select files
+  // Click to select files (but not on Google buttons)
   dropZone.addEventListener("click", (e) => {
-    // Avoid double triggering if clicking the label/input directly
+    // Avoid triggering file input when clicking on buttons or labels
     if (
       e.target.tagName !== "INPUT" &&
-      !e.target.closest(".file-input-label")
+      e.target.tagName !== "BUTTON" &&
+      !e.target.closest(".file-input-label") &&
+      !e.target.closest(".btn-secondary") &&
+      !e.target.closest(".google-drive-btn") &&
+      !e.target.closest(".google-photos-btn")
     ) {
       document.getElementById("fileInput").click();
     }
