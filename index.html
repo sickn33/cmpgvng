@@ -227,7 +227,7 @@
                 </label>
                 <button
                   class="btn btn-secondary google-drive-btn"
-                  onclick="openGoogleDrivePicker()"
+                  onclick="event.stopPropagation(); openGoogleDrivePicker()"
                   title="Importa da Google Drive"
                 >
                   <span class="icon icon-sm">
@@ -242,7 +242,7 @@
                 </button>
                 <button
                   class="btn btn-secondary google-photos-btn"
-                  onclick="openGooglePhotosPicker()"
+                  onclick="event.stopPropagation(); openGooglePhotosPicker()"
                   title="Importa da Google Photos"
                 >
                   <span class="icon icon-sm">
