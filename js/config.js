@@ -21,12 +21,16 @@ const CONFIG = {
 
   // OneDrive Target Configuration
   oneDrive: {
-    // Sharing link to the folder (this is the magic!)
-    // Anyone with this link and "Can Edit" permission can upload
+    // Sharing link to the folder
     shareLink:
       "https://zx3kf-my.sharepoint.com/:f:/g/personal/sickn33_zx3kf_onmicrosoft_com/IgC6rwobP4XZRZNcEh2A8OabARgaXO3fMrqeVOS6FgtX7BE",
 
-    // Fallback folder name (created in user's drive if share link fails)
+    // Direct IDs (used as primary method)
+    driveId:
+      "b!zLuElr4ANkOzaCMUCo3ydAMREhc0rexBm-NcSpCh0sAXIfhYVm2jSImpjTuGNiLM",
+    folderId: "01RQILE7F2V4FBWP4F3FCZGXASDWAPBZU3",
+
+    // Fallback folder name (created in user's drive if all else fails)
     folderName: "CMP GVNG",
   },
 

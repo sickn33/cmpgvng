@@ -28,7 +28,7 @@ function encodeSharingUrl(url) {
 }
 
 /**
- * Resolve the sharing link to get driveItem info
+ * Resolve the target folder - tries multiple approaches
  */
 async function resolveShareLink() {
   if (targetDriveItem) {
@@ -36,37 +36,59 @@ async function resolveShareLink() {
   }
 
   const client = getGraphClient();
+
+  // Approach 1: Try direct IDs if configured
+  if (CONFIG.oneDrive.driveId && CONFIG.oneDrive.folderId) {
+    console.log("🔗 Tentativo con ID diretti...");
+    try {
+      const folder = await client
+        .api(
+          `/drives/${CONFIG.oneDrive.driveId}/items/${CONFIG.oneDrive.folderId}`
+        )
+        .get();
+
+      targetDriveItem = {
+        driveId: CONFIG.oneDrive.driveId,
+        itemId: CONFIG.oneDrive.folderId,
+        name: folder.name,
+      };
+      console.log("✅ Cartella trovata con ID:", folder.name);
+      return targetDriveItem;
+    } catch (error) {
+      console.log(
+        "⚠️ ID diretti non funzionano, provo share link...",
+        error.message
+      );
+    }
+  }
+
+  // Approach 2: Try share link
   const shareLink = CONFIG.oneDrive.shareLink;
+  if (shareLink) {
+    console.log("🔗 Tentativo con share link...");
+    try {
+      const encodedUrl = encodeSharingUrl(shareLink);
+      const sharedItem = await client
+        .api(`/shares/${encodedUrl}/driveItem`)
+        .get();
 
-  if (!shareLink) {
-    throw new Error("Share link non configurato");
+      targetDriveItem = {
+        driveId: sharedItem.parentReference.driveId,
+        itemId: sharedItem.id,
+        name: sharedItem.name,
+      };
+      console.log("✅ Cartella trovata via share link:", sharedItem.name);
+      return targetDriveItem;
+    } catch (error) {
+      console.log(
+        "⚠️ Share link non funziona, creo cartella locale...",
+        error.message
+      );
+    }
   }
 
-  console.log("🔗 Risolvo link di condivisione...");
-
-  try {
-    const encodedUrl = encodeSharingUrl(shareLink);
-
-    // Get the shared item info
-    const sharedItem = await client
-      .api(`/shares/${encodedUrl}/driveItem`)
-      .get();
-
-    targetDriveItem = {
-      driveId: sharedItem.parentReference.driveId,
-      itemId: sharedItem.id,
-      name: sharedItem.name,
-    };
-
-    console.log("✅ Cartella trovata:", targetDriveItem.name);
-    return targetDriveItem;
-  } catch (error) {
-    console.error("Errore risoluzione share link:", error);
-
-    // Fallback: create folder in user's drive
-    console.log("📁 Fallback: creo cartella nel tuo drive...");
-    return await createFallbackFolder();
-  }
+  // Approach 3: Fallback - create folder in user's drive
+  return await createFallbackFolder();
 }
 
 /**
