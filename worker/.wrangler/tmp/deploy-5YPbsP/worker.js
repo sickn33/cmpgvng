@@ -572,19 +572,51 @@ async function proxyPhotosGetItems(request, sessionId, corsHeaders) {
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
   }
-  const response = await fetch(
-    `https://photospicker.googleapis.com/v1/sessions/${sessionId}/mediaItems`,
-    {
-      headers: {
-        Authorization: `Bearer ${accessToken}`
+  try {
+    console.log("proxyPhotosGetItems called - sessionId:", sessionId);
+    const response = await fetch(
+      `https://photospicker.googleapis.com/v1/sessions/${sessionId}/mediaItems`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
       }
+    );
+    console.log("Photos API mediaItems response status:", response.status);
+    const responseText = await response.text();
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error(
+        "Failed to parse Photos API response as JSON:",
+        responseText.substring(0, 200)
+      );
+      return new Response(
+        JSON.stringify({
+          error: "Invalid response from Google Photos API",
+          details: responseText.substring(0, 200)
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        }
+      );
     }
-  );
-  const data = await response.json();
-  return new Response(JSON.stringify(data), {
-    status: response.status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" }
-  });
+    return new Response(JSON.stringify(data), {
+      status: response.status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
+    });
+  } catch (error) {
+    console.error("proxyPhotosGetItems error:", error);
+    return new Response(
+      JSON.stringify({ error: error.message || "Unknown error in proxy" }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      }
+    );
+  }
 }
 __name(proxyPhotosGetItems, "proxyPhotosGetItems");
 export {
