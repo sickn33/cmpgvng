@@ -295,18 +295,31 @@ async function createPhotosPickerSession() {
 
     const session = await response.json();
     photosSessionId = session.id;
+    console.log("Photos session created:", photosSessionId);
 
     // Open picker in popup
     const pickerUrl = session.pickerUri;
+    console.log("Opening Photos picker URL:", pickerUrl);
+
     photosPickerWindow = window.open(
       pickerUrl,
       "GooglePhotosPicker",
       "width=800,height=600,menubar=no,toolbar=no,location=no"
     );
 
-    // Start polling for session completion
+    // Check if popup was blocked
+    if (!photosPickerWindow || photosPickerWindow.closed) {
+      console.error("Photos popup was blocked!");
+      showToast("Popup bloccato! Abilita i popup per questo sito.", "error");
+      return;
+    }
+
     showToast("Seleziona le foto da Google Photos...", "info");
-    startPhotosSessionPolling();
+
+    // Start polling after a short delay to allow popup to load
+    setTimeout(() => {
+      startPhotosSessionPolling();
+    }, 2000);
   } catch (error) {
     console.error("Error creating Photos session:", error);
     showToast("Errore con Google Photos: " + error.message, "error");
