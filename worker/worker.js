@@ -59,6 +59,25 @@ export default {
         return await handleGooglePhotosUpload(request, env, corsHeaders);
       }
 
+      // Photos Picker API Proxy - Create Session
+      if (url.pathname === "/photos-session" && request.method === "POST") {
+        return await proxyPhotosCreateSession(request, corsHeaders);
+      }
+
+      // Photos Picker API Proxy - Get Session Status
+      if (
+        url.pathname.startsWith("/photos-session/") &&
+        request.method === "GET"
+      ) {
+        const sessionId = url.pathname
+          .split("/photos-session/")[1]
+          .split("/")[0];
+        if (url.pathname.endsWith("/items")) {
+          return await proxyPhotosGetItems(request, sessionId, corsHeaders);
+        }
+        return await proxyPhotosGetSession(request, sessionId, corsHeaders);
+      }
+
       // 404 for unknown routes
       return new Response(JSON.stringify({ error: "Not found" }), {
         status: 404,
@@ -674,4 +693,97 @@ async function handleGooglePhotosUpload(request, env, corsHeaders) {
       }
     );
   }
+}
+
+/**
+ * Proxy: Create Photos Picker session
+ */
+async function proxyPhotosCreateSession(request, corsHeaders) {
+  const body = await request.json();
+  const { accessToken } = body;
+
+  if (!accessToken) {
+    return new Response(JSON.stringify({ error: "Missing accessToken" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const response = await fetch(
+    "https://photospicker.googleapis.com/v1/sessions",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({}),
+    }
+  );
+
+  const data = await response.json();
+  return new Response(JSON.stringify(data), {
+    status: response.status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+/**
+ * Proxy: Get Photos Picker session status
+ */
+async function proxyPhotosGetSession(request, sessionId, corsHeaders) {
+  const url = new URL(request.url);
+  const accessToken = url.searchParams.get("accessToken");
+
+  if (!accessToken) {
+    return new Response(JSON.stringify({ error: "Missing accessToken" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const response = await fetch(
+    `https://photospicker.googleapis.com/v1/sessions/${sessionId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  );
+
+  const data = await response.json();
+  return new Response(JSON.stringify(data), {
+    status: response.status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+/**
+ * Proxy: Get Photos Picker selected items
+ */
+async function proxyPhotosGetItems(request, sessionId, corsHeaders) {
+  const url = new URL(request.url);
+  const accessToken = url.searchParams.get("accessToken");
+
+  if (!accessToken) {
+    return new Response(JSON.stringify({ error: "Missing accessToken" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const response = await fetch(
+    `https://photospicker.googleapis.com/v1/sessions/${sessionId}/mediaItems`,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  );
+
+  const data = await response.json();
+  return new Response(JSON.stringify(data), {
+    status: response.status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 }

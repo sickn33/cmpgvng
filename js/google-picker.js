@@ -274,18 +274,14 @@ async function openGooglePhotosPicker() {
  */
 async function createPhotosPickerSession() {
   try {
-    // Create session
-    const response = await fetch(
-      "https://photospicker.googleapis.com/v1/sessions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${photosAccessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({}),
-      }
-    );
+    // Create session via worker proxy (to bypass CORS)
+    const response = await fetch(`${CONFIG.workerUrl}/photos-session`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ accessToken: photosAccessToken }),
+    });
 
     if (!response.ok) {
       const error = await response.text();
@@ -349,14 +345,13 @@ function startPhotosSessionPolling() {
     }
 
     try {
-      // First, check session status (BEFORE checking if window is closed!)
+      // Check session status via worker proxy (to bypass CORS)
       const response = await fetch(
-        `https://photospicker.googleapis.com/v1/sessions/${photosSessionId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${photosAccessToken}`,
-          },
-        }
+        `${
+          CONFIG.workerUrl
+        }/photos-session/${photosSessionId}?accessToken=${encodeURIComponent(
+          photosAccessToken
+        )}`
       );
 
       if (!response.ok) {
@@ -409,13 +404,13 @@ function startPhotosSessionPolling() {
  */
 async function fetchAndTransferPhotosMediaItems() {
   try {
+    // Fetch items via worker proxy (to bypass CORS)
     const response = await fetch(
-      `https://photospicker.googleapis.com/v1/sessions/${photosSessionId}/mediaItems`,
-      {
-        headers: {
-          Authorization: `Bearer ${photosAccessToken}`,
-        },
-      }
+      `${
+        CONFIG.workerUrl
+      }/photos-session/${photosSessionId}/items?accessToken=${encodeURIComponent(
+        photosAccessToken
+      )}`
     );
 
     if (!response.ok) {
