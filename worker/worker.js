@@ -297,24 +297,38 @@ async function handleGallery(request, env, corsHeaders) {
   const accessToken = await getAccessToken(env);
 
   // List files in the folder
-  const listUrl = `${GRAPH_API_BASE}/drives/${env.ONEDRIVE_DRIVE_ID}/items/${env.ONEDRIVE_FOLDER_ID}/children?$select=id,name,size,file,image,video,createdDateTime,@microsoft.graph.downloadUrl&$expand=thumbnails&$top=100`;
+  // List files in the folder (fetch all pages)
+  let allItems = [];
+  let nextLink = `${GRAPH_API_BASE}/drives/${env.ONEDRIVE_DRIVE_ID}/items/${env.ONEDRIVE_FOLDER_ID}/children?$select=id,name,size,file,image,video,createdDateTime,@microsoft.graph.downloadUrl&$expand=thumbnails&$top=999`;
 
-  const response = await fetch(listUrl, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
+  console.log("Starting gallery fetch...");
 
-  if (!response.ok) {
-    const error = await response.text();
-    console.error("List files failed:", error);
-    throw new Error("Failed to list files");
+  while (nextLink) {
+    console.log("Fetching page:", nextLink);
+    const response = await fetch(nextLink, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error("List files failed:", error);
+      throw new Error("Failed to list files");
+    }
+
+    const data = await response.json();
+    if (data.value) {
+      allItems = allItems.concat(data.value);
+    }
+
+    nextLink = data["@odata.nextLink"];
   }
 
-  const data = await response.json();
+  console.log(`Fetched total ${allItems.length} items`);
 
   // Transform the response to just what we need
-  const items = (data.value || [])
+  const items = allItems
     .filter(
       (item) =>
         item.file &&
