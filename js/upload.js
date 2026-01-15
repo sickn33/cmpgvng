@@ -36,8 +36,9 @@ async function resolveShareLink() {
   }
 
   const client = getGraphClient();
+  const folderName = CONFIG.oneDrive.folderName || "CMP GVNG";
 
-  // Approach 1: Try direct IDs if configured
+  // Approach 1: Try direct IDs if configured (works for owner)
   if (CONFIG.oneDrive.driveId && CONFIG.oneDrive.folderId) {
     console.log("🔗 Tentativo con ID diretti...");
     try {
@@ -56,13 +57,36 @@ async function resolveShareLink() {
       return targetDriveItem;
     } catch (error) {
       console.log(
-        "⚠️ ID diretti non funzionano, provo share link...",
+        "⚠️ ID diretti non funzionano, cerco in sharedWithMe...",
         error.message
       );
     }
   }
 
-  // Approach 2: Try share link
+  // Approach 2: Search in "Shared with me" (works for friends)
+  console.log("🔍 Cerco in 'Condivisi con me'...");
+  try {
+    const sharedItems = await client.api("/me/drive/sharedWithMe").get();
+
+    if (sharedItems.value) {
+      for (const item of sharedItems.value) {
+        if (item.name === folderName && item.folder) {
+          targetDriveItem = {
+            driveId: item.remoteItem.parentReference.driveId,
+            itemId: item.remoteItem.id,
+            name: item.name,
+          };
+          console.log("✅ Cartella trovata in sharedWithMe:", item.name);
+          return targetDriveItem;
+        }
+      }
+    }
+    console.log("⚠️ Cartella non trovata in sharedWithMe, provo share link...");
+  } catch (error) {
+    console.log("⚠️ Errore sharedWithMe:", error.message);
+  }
+
+  // Approach 3: Try share link
   const shareLink = CONFIG.oneDrive.shareLink;
   if (shareLink) {
     console.log("🔗 Tentativo con share link...");
@@ -87,7 +111,7 @@ async function resolveShareLink() {
     }
   }
 
-  // Approach 3: Fallback - create folder in user's drive
+  // Approach 4: Fallback - create folder in user's drive
   return await createFallbackFolder();
 }
 
