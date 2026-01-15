@@ -2,3 +2,109 @@
 .hidden {
   display: none !important;
 }
+
+/* ===== Password Gate ===== */
+.password-gate {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary);
+  z-index: 9999;
+}
+
+.password-gate::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+      circle at 30% 30%,
+      rgba(99, 102, 241, 0.2) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 70% 70%,
+      rgba(139, 92, 246, 0.2) 0%,
+      transparent 50%
+    );
+  animation: backgroundPulse 8s ease-in-out infinite alternate;
+}
+
+.password-card {
+  position: relative;
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+  padding: var(--spacing-xl);
+}
+
+.password-icon {
+  font-size: 4rem;
+  display: block;
+  margin-bottom: var(--spacing-md);
+  animation: float 3s ease-in-out infinite;
+}
+
+.password-card h2 {
+  font-size: 1.75rem;
+  margin-bottom: var(--spacing-sm);
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.password-card p {
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-lg);
+}
+
+.password-input {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: 1rem;
+  background: var(--bg-secondary);
+  border: 2px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  text-align: center;
+  margin-bottom: var(--spacing-md);
+  transition: all var(--transition-normal);
+}
+
+.password-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+}
+
+.password-input::placeholder {
+  color: var(--text-muted);
+}
+
+.password-error {
+  color: var(--error);
+  margin-top: var(--spacing-md);
+  font-weight: 500;
+}
+
+/* Shake animation for wrong password */
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20%,
+  60% {
+    transform: translateX(-10px);
+  }
+  40%,
+  80% {
+    transform: translateX(10px);
+  }
+}
+
+.shake {
+  animation: shake 0.5s ease;
+}
