@@ -72,10 +72,6 @@ function handleDrop(e) {
   const files = dt.files;
 
   if (files.length > 0) {
-    if (!isAuthenticated()) {
-      showToast("Effettua il login prima di caricare file", "warning");
-      return;
-    }
     addFilesToQueue(files);
   }
 }
@@ -90,10 +86,6 @@ function initFileInput() {
   fileInput.addEventListener("change", (e) => {
     const files = e.target.files;
     if (files.length > 0) {
-      if (!isAuthenticated()) {
-        showToast("Effettua il login prima di caricare file", "warning");
-        return;
-      }
       addFilesToQueue(files);
     }
     // Reset input to allow selecting the same file again
