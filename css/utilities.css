@@ -1,0 +1,4 @@
+/* Utility classes for visibility */
+.hidden {
+  display: none !important;
+}
