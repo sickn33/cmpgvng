@@ -328,13 +328,6 @@ function startPhotosSessionPolling() {
   photosPollingInterval = setInterval(async () => {
     pollCount++;
 
-    // Check if window was closed without selection
-    if (photosPickerWindow && photosPickerWindow.closed) {
-      clearInterval(photosPollingInterval);
-      showToast("Selezione annullata", "info");
-      return;
-    }
-
     // Max polling time reached
     if (pollCount > maxPolls) {
       clearInterval(photosPollingInterval);
@@ -343,6 +336,7 @@ function startPhotosSessionPolling() {
     }
 
     try {
+      // First, check session status (BEFORE checking if window is closed!)
       const response = await fetch(
         `https://photospicker.googleapis.com/v1/sessions/${photosSessionId}`,
         {
@@ -353,12 +347,24 @@ function startPhotosSessionPolling() {
       );
 
       if (!response.ok) {
+        console.log(
+          "Photos polling: response not ok, status:",
+          response.status
+        );
+        // Check if window was closed without making selection
+        if (photosPickerWindow && photosPickerWindow.closed) {
+          clearInterval(photosPollingInterval);
+          showToast("Selezione annullata", "info");
+          return;
+        }
         return; // Keep polling
       }
 
       const session = await response.json();
+      console.log("Photos session status:", session);
 
       if (session.mediaItemsSet) {
+        console.log("Photos: mediaItemsSet is true, fetching items...");
         clearInterval(photosPollingInterval);
 
         // Close popup if still open
@@ -368,9 +374,19 @@ function startPhotosSessionPolling() {
 
         // Fetch selected media items
         await fetchAndTransferPhotosMediaItems();
+        return;
+      }
+
+      // If session is not ready yet and window is closed, keep polling a few more times
+      // because the session might still be processing
+      if (photosPickerWindow && photosPickerWindow.closed && pollCount > 5) {
+        // Window closed but no mediaItemsSet after 5 seconds - likely cancelled
+        clearInterval(photosPollingInterval);
+        showToast("Selezione annullata", "info");
+        return;
       }
     } catch (error) {
-      console.error("Polling error:", error);
+      console.error("Photos polling error:", error);
     }
   }, 1000); // Poll every second
 }
