@@ -97,10 +97,10 @@ async function handleMediaProxy(request, env, itemId, corsHeaders) {
 
 ## Project Status Board
 
-- [ ] Approvazione piano dall'utente
-- [ ] Task 1: Frontend fix proxy per video
-- [ ] Task 2: Backend Range requests
-- [ ] Task 3: Testing
+- [x] Approvazione piano dall'utente ✅
+- [x] Task 1: Frontend fix proxy per video ✅
+- [x] Task 2: Backend Range requests ✅
+- [ ] Task 3: Testing manuale (utente)
 
 ## Executor's Feedback or Assistance Requests
 

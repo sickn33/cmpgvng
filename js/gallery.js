@@ -182,6 +182,19 @@ function openLightbox(index) {
     video.onloadeddata = () => console.log("Video data loaded!");
     video.oncanplay = () => console.log("Video can play!");
 
+    // Debug: Test fetch the video URL first to see what we get
+    console.log("Testing video URL:", mediaUrl);
+    fetch(mediaUrl, { method: "HEAD" })
+      .then((response) => {
+        console.log("Video HEAD response:", {
+          status: response.status,
+          contentType: response.headers.get("content-type"),
+          contentLength: response.headers.get("content-length"),
+          cors: response.headers.get("access-control-allow-origin"),
+        });
+      })
+      .catch((err) => console.error("Video HEAD fetch error:", err));
+
     video.src = mediaUrl;
     video.load(); // Force reload
   } else {

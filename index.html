@@ -423,7 +423,13 @@
       </button>
       <div class="lightbox-content">
         <img id="lightboxImage" src="" alt="" />
-        <video id="lightboxVideo" controls class="hidden"></video>
+        <video
+          id="lightboxVideo"
+          controls
+          playsinline
+          crossorigin="anonymous"
+          class="hidden"
+        ></video>
       </div>
       <button class="lightbox-nav lightbox-next" onclick="navigateLightbox(1)">
         ❯
