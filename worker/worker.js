@@ -909,6 +909,7 @@ async function handleMediaProxy(request, env, itemId, corsHeaders) {
     const contentUrl = `${GRAPH_API_BASE}/drives/${env.ONEDRIVE_DRIVE_ID}/items/${itemId}/content`;
 
     console.log("Media proxy: fetching", itemId);
+    console.log("Media proxy: URL", contentUrl);
 
     const response = await fetch(contentUrl, {
       headers: {
@@ -917,28 +918,60 @@ async function handleMediaProxy(request, env, itemId, corsHeaders) {
       redirect: "follow", // Follow the 302 redirect
     });
 
+    console.log("Media proxy: response status", response.status);
+    console.log(
+      "Media proxy: response content-type",
+      response.headers.get("content-type")
+    );
+
     if (!response.ok) {
-      console.error("Media proxy error:", response.status);
-      return new Response(JSON.stringify({ error: "Failed to fetch media" }), {
-        status: response.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      const errorText = await response.text();
+      console.error(
+        "Media proxy error:",
+        response.status,
+        errorText.substring(0, 200)
+      );
+      return new Response(
+        JSON.stringify({
+          error: "Failed to fetch media",
+          status: response.status,
+          details: errorText.substring(0, 200),
+        }),
+        {
+          status: response.status,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     // Stream the response back with appropriate headers
     const contentType =
       response.headers.get("content-type") || "application/octet-stream";
+    const contentLength = response.headers.get("content-length");
+
+    console.log(
+      "Media proxy: streaming",
+      contentType,
+      contentLength ? `${contentLength} bytes` : "unknown size"
+    );
+
+    const responseHeaders = {
+      ...corsHeaders,
+      "Content-Type": contentType,
+      "Cache-Control": "public, max-age=3600",
+      "Accept-Ranges": "bytes", // Important for video seeking
+    };
+
+    if (contentLength) {
+      responseHeaders["Content-Length"] = contentLength;
+    }
 
     return new Response(response.body, {
       status: 200,
-      headers: {
-        ...corsHeaders,
-        "Content-Type": contentType,
-        "Cache-Control": "public, max-age=3600", // Cache for 1 hour
-      },
+      headers: responseHeaders,
     });
   } catch (error) {
-    console.error("Media proxy error:", error);
+    console.error("Media proxy error:", error.message, error.stack);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
