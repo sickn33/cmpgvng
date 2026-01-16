@@ -333,14 +333,21 @@ function startPhotosSessionPolling() {
 
   let pollCount = 0;
   const maxPolls = 1800; // 30 minutes max (plenty of time to select photos)
+  let windowClosedCount = 0; // Track how many times we poll after window closes
+
+  console.log("Starting Photos session polling...");
 
   photosPollingInterval = setInterval(async () => {
     pollCount++;
+    console.log(
+      `Poll #${pollCount}, window closed: ${photosPickerWindow?.closed}`
+    );
 
     // Max polling time reached
     if (pollCount > maxPolls) {
       clearInterval(photosPollingInterval);
       showToast("Timeout selezione foto (30 min)", "warning");
+      console.log("Polling stopped: max polls reached");
       return;
     }
 
@@ -354,6 +361,8 @@ function startPhotosSessionPolling() {
         )}`
       );
 
+      console.log(`Poll #${pollCount} response status: ${response.status}`);
+
       if (!response.ok) {
         console.log(
           "Photos polling: response not ok, status:",
@@ -361,9 +370,14 @@ function startPhotosSessionPolling() {
         );
         // Check if window was closed without making selection
         if (photosPickerWindow && photosPickerWindow.closed) {
-          clearInterval(photosPollingInterval);
-          showToast("Selezione annullata", "info");
-          return;
+          windowClosedCount++;
+          console.log(`Window closed, count: ${windowClosedCount}`);
+          if (windowClosedCount > 15) {
+            clearInterval(photosPollingInterval);
+            showToast("Selezione annullata", "info");
+            console.log("Polling stopped: window closed for 15+ seconds");
+            return;
+          }
         }
         return; // Keep polling
       }
@@ -385,16 +399,26 @@ function startPhotosSessionPolling() {
         return;
       }
 
-      // If session is not ready yet and window is closed, keep polling a bit more
-      // because the session might still be processing
-      if (photosPickerWindow && photosPickerWindow.closed && pollCount > 15) {
-        // Window closed but no mediaItemsSet after 15 seconds - likely cancelled
-        clearInterval(photosPollingInterval);
-        showToast("Selezione annullata", "info");
-        return;
+      // If window is closed but mediaItemsSet is still false, track it
+      if (photosPickerWindow && photosPickerWindow.closed) {
+        windowClosedCount++;
+        console.log(
+          `Window closed but mediaItemsSet still false, count: ${windowClosedCount}`
+        );
+        if (windowClosedCount > 15) {
+          clearInterval(photosPollingInterval);
+          showToast("Selezione annullata", "info");
+          console.log(
+            "Polling stopped: window closed for 15+ seconds without selection"
+          );
+          return;
+        }
+      } else {
+        windowClosedCount = 0; // Reset if window is open
       }
     } catch (error) {
       console.error("Photos polling error:", error);
+      console.error("Error stack:", error.stack);
     }
   }, 1000); // Poll every second
 }
