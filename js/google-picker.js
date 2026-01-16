@@ -332,7 +332,7 @@ function startPhotosSessionPolling() {
   }
 
   let pollCount = 0;
-  const maxPolls = 120; // 2 minutes max
+  const maxPolls = 1800; // 30 minutes max (plenty of time to select photos)
 
   photosPollingInterval = setInterval(async () => {
     pollCount++;
@@ -340,7 +340,7 @@ function startPhotosSessionPolling() {
     // Max polling time reached
     if (pollCount > maxPolls) {
       clearInterval(photosPollingInterval);
-      showToast("Timeout selezione foto", "warning");
+      showToast("Timeout selezione foto (30 min)", "warning");
       return;
     }
 
@@ -385,10 +385,10 @@ function startPhotosSessionPolling() {
         return;
       }
 
-      // If session is not ready yet and window is closed, keep polling a few more times
+      // If session is not ready yet and window is closed, keep polling a bit more
       // because the session might still be processing
-      if (photosPickerWindow && photosPickerWindow.closed && pollCount > 5) {
-        // Window closed but no mediaItemsSet after 5 seconds - likely cancelled
+      if (photosPickerWindow && photosPickerWindow.closed && pollCount > 15) {
+        // Window closed but no mediaItemsSet after 15 seconds - likely cancelled
         clearInterval(photosPollingInterval);
         showToast("Selezione annullata", "info");
         return;
