@@ -90,7 +90,11 @@ export default {
       }
 
       // Media proxy endpoint - stream video/image from OneDrive
-      if (url.pathname.startsWith("/media/") && request.method === "GET") {
+      // Support both GET and HEAD methods
+      if (
+        url.pathname.startsWith("/media/") &&
+        (request.method === "GET" || request.method === "HEAD")
+      ) {
         const itemId = url.pathname.replace("/media/", "");
         return await handleMediaProxy(request, env, itemId, corsHeaders);
       }
