@@ -89,6 +89,12 @@ export default {
         return await proxyPhotosGetSession(request, sessionId, corsHeaders);
       }
 
+      // Media proxy endpoint - stream video/image from OneDrive
+      if (url.pathname.startsWith("/media/") && request.method === "GET") {
+        const itemId = url.pathname.replace("/media/", "");
+        return await handleMediaProxy(request, env, itemId, corsHeaders);
+      }
+
       // 404 for unknown routes
       return new Response(JSON.stringify({ error: "Not found" }), {
         status: 404,
@@ -386,6 +392,20 @@ async function handleGallery(request, env, corsHeaders) {
         const thumb = item.thumbnails[0];
         thumbnailUrl =
           thumb.large?.url || thumb.medium?.url || thumb.small?.url;
+      }
+
+      // Debug: log video items to see what OneDrive returns
+      if (item.file.mimeType.startsWith("video/")) {
+        console.log(
+          "Video item raw data:",
+          JSON.stringify({
+            name: item.name,
+            mimeType: item.file.mimeType,
+            downloadUrl: item["@microsoft.graph.downloadUrl"]?.substring(0, 50),
+            hasDownloadUrl: !!item["@microsoft.graph.downloadUrl"],
+            keys: Object.keys(item),
+          })
+        );
       }
 
       return {
@@ -862,5 +882,66 @@ async function proxyPhotosGetItems(request, sessionId, corsHeaders) {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
+  }
+}
+
+/**
+ * Handle media proxy - stream video/image from OneDrive
+ */
+async function handleMediaProxy(request, env, itemId, corsHeaders) {
+  // Get password from query string
+  const url = new URL(request.url);
+  const password = url.searchParams.get("password");
+
+  if (!password || password !== env.SITE_PASSWORD) {
+    return new Response(JSON.stringify({ error: "Password non valida" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  try {
+    // Get fresh access token
+    const accessToken = await getAccessToken(env);
+
+    // Get file download URL from OneDrive
+    // Using /content endpoint which returns a 302 redirect to the actual file
+    const contentUrl = `${GRAPH_API_BASE}/drives/${env.ONEDRIVE_DRIVE_ID}/items/${itemId}/content`;
+
+    console.log("Media proxy: fetching", itemId);
+
+    const response = await fetch(contentUrl, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      redirect: "follow", // Follow the 302 redirect
+    });
+
+    if (!response.ok) {
+      console.error("Media proxy error:", response.status);
+      return new Response(JSON.stringify({ error: "Failed to fetch media" }), {
+        status: response.status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Stream the response back with appropriate headers
+    const contentType =
+      response.headers.get("content-type") || "application/octet-stream";
+
+    return new Response(response.body, {
+      status: 200,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": contentType,
+        "Cache-Control": "public, max-age=3600", // Cache for 1 hour
+      },
+    });
+  } catch (error) {
+    console.error("Media proxy error:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 }

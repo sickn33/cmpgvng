@@ -137,7 +137,19 @@ function openLightbox(index) {
     "isVideo:",
     item.isVideo
   );
-  console.log("Download URL:", item.downloadUrl?.substring(0, 100) + "...");
+
+  // Get media URL - use downloadUrl if available, otherwise use proxy endpoint
+  const password = sessionStorage.getItem("cmpgvng_password");
+  const mediaUrl =
+    item.downloadUrl ||
+    `${CONFIG.workerUrl}/media/${item.id}?password=${encodeURIComponent(
+      password
+    )}`;
+
+  console.log(
+    "Using URL:",
+    item.downloadUrl ? "direct downloadUrl" : "proxy endpoint"
+  );
 
   // Show lightbox
   lightbox.classList.remove("hidden");
@@ -164,14 +176,14 @@ function openLightbox(index) {
     video.onloadeddata = () => console.log("Video data loaded!");
     video.oncanplay = () => console.log("Video can play!");
 
-    video.src = item.downloadUrl;
+    video.src = mediaUrl;
     video.load(); // Force reload
   } else {
     video.classList.add("hidden");
     video.pause();
     video.src = "";
     image.classList.remove("hidden");
-    image.src = item.downloadUrl || item.thumbnailUrl;
+    image.src = mediaUrl;
     image.alt = item.name;
   }
 
