@@ -168,46 +168,39 @@ function openLightbox(index) {
 
     // Add error handler for video
     video.onerror = (e) => {
-      console.error("Video load error:", e);
-      console.error(
-        "Video error code:",
-        video.error?.code,
-        "message:",
-        video.error?.message
-      );
+      console.error("Video playback error:", video.error?.message);
       showToast("Errore nel caricamento del video", "error");
     };
 
-    video.onloadstart = () => console.log("Video loading started...");
-    video.onloadeddata = () => console.log("Video data loaded!");
-    video.oncanplay = () => console.log("Video can play!");
-
-    // Debug: Test fetch the video URL first to see what we get
-    console.log("Testing video URL:", mediaUrl);
-    console.log("Video element before src:", video.src);
-
-    fetch(mediaUrl, { method: "HEAD" })
+    // Fetch video as blob and create object URL (bypasses streaming issues)
+    console.log("Fetching video as blob from:", mediaUrl);
+    fetch(mediaUrl)
       .then((response) => {
-        console.log("Video HEAD response:", {
-          status: response.status,
-          contentType: response.headers.get("content-type"),
-          contentLength: response.headers.get("content-length"),
-          cors: response.headers.get("access-control-allow-origin"),
-        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.blob();
       })
-      .catch((err) => console.error("Video HEAD fetch error:", err));
-
-    // Set video source
-    video.src = mediaUrl;
-    console.log("Video element AFTER setting src:", video.src);
-    console.log("Video currentSrc:", video.currentSrc);
-    console.log("Video networkState:", video.networkState);
-
-    video.load(); // Force reload
-    console.log("Video element AFTER load():", video.src);
+      .then((blob) => {
+        console.log(
+          "Video blob received:",
+          blob.size,
+          "bytes, type:",
+          blob.type
+        );
+        const blobUrl = URL.createObjectURL(blob);
+        video.src = blobUrl;
+        video.onloadeddata = () => console.log("Video ready to play!");
+      })
+      .catch((err) => {
+        console.error("Failed to fetch video:", err);
+        showToast("Impossibile caricare il video", "error");
+      });
   } else {
     video.classList.add("hidden");
     video.pause();
+    // Clean up blob URL if exists
+    if (video.src && video.src.startsWith("blob:")) {
+      URL.revokeObjectURL(video.src);
+    }
     video.src = "";
     image.classList.remove("hidden");
     image.src = mediaUrl;
