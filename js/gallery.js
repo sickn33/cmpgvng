@@ -138,23 +138,17 @@ function openLightbox(index) {
     item.isVideo
   );
 
-  // Get media URL
-  // Video: ALWAYS use proxy (downloadUrl expires quickly, causes error code 4)
-  // Images: use downloadUrl if available for performance, fallback to proxy
+  // Get media URL - use downloadUrl if available, otherwise use proxy endpoint
   const password = sessionStorage.getItem("cmpgvng_password");
-  const proxyUrl = `${CONFIG.workerUrl}/media/${
-    item.id
-  }?password=${encodeURIComponent(password)}`;
-
-  const mediaUrl = item.isVideo ? proxyUrl : item.downloadUrl || proxyUrl;
+  const mediaUrl =
+    item.downloadUrl ||
+    `${CONFIG.workerUrl}/media/${item.id}?password=${encodeURIComponent(
+      password
+    )}`;
 
   console.log(
     "Using URL:",
-    item.isVideo
-      ? "proxy (video)"
-      : item.downloadUrl
-      ? "direct downloadUrl"
-      : "proxy endpoint"
+    item.downloadUrl ? "direct downloadUrl" : "proxy endpoint"
   );
 
   // Show lightbox
@@ -168,39 +162,25 @@ function openLightbox(index) {
 
     // Add error handler for video
     video.onerror = (e) => {
-      console.error("Video playback error:", video.error?.message);
+      console.error("Video load error:", e);
+      console.error(
+        "Video error code:",
+        video.error?.code,
+        "message:",
+        video.error?.message
+      );
       showToast("Errore nel caricamento del video", "error");
     };
 
-    // Fetch video as blob and create object URL (bypasses streaming issues)
-    console.log("Fetching video as blob from:", mediaUrl);
-    fetch(mediaUrl)
-      .then((response) => {
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return response.blob();
-      })
-      .then((blob) => {
-        console.log(
-          "Video blob received:",
-          blob.size,
-          "bytes, type:",
-          blob.type
-        );
-        const blobUrl = URL.createObjectURL(blob);
-        video.src = blobUrl;
-        video.onloadeddata = () => console.log("Video ready to play!");
-      })
-      .catch((err) => {
-        console.error("Failed to fetch video:", err);
-        showToast("Impossibile caricare il video", "error");
-      });
+    video.onloadstart = () => console.log("Video loading started...");
+    video.onloadeddata = () => console.log("Video data loaded!");
+    video.oncanplay = () => console.log("Video can play!");
+
+    video.src = mediaUrl;
+    video.load(); // Force reload
   } else {
     video.classList.add("hidden");
     video.pause();
-    // Clean up blob URL if exists
-    if (video.src && video.src.startsWith("blob:")) {
-      URL.revokeObjectURL(video.src);
-    }
     video.src = "";
     image.classList.remove("hidden");
     image.src = mediaUrl;

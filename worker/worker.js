@@ -90,11 +90,7 @@ export default {
       }
 
       // Media proxy endpoint - stream video/image from OneDrive
-      // Support both GET and HEAD methods
-      if (
-        url.pathname.startsWith("/media/") &&
-        (request.method === "GET" || request.method === "HEAD")
-      ) {
+      if (url.pathname.startsWith("/media/") && request.method === "GET") {
         const itemId = url.pathname.replace("/media/", "");
         return await handleMediaProxy(request, env, itemId, corsHeaders);
       }
@@ -891,7 +887,6 @@ async function proxyPhotosGetItems(request, sessionId, corsHeaders) {
 
 /**
  * Handle media proxy - stream video/image from OneDrive
- * Supports Range requests for video seeking
  */
 async function handleMediaProxy(request, env, itemId, corsHeaders) {
   // Get password from query string
@@ -909,77 +904,38 @@ async function handleMediaProxy(request, env, itemId, corsHeaders) {
     // Get fresh access token
     const accessToken = await getAccessToken(env);
 
-    // Step 1: Get item metadata to get the direct download URL
-    const metadataUrl = `${GRAPH_API_BASE}/drives/${env.ONEDRIVE_DRIVE_ID}/items/${itemId}?$select=@microsoft.graph.downloadUrl,name,size,file`;
+    // Get file download URL from OneDrive
+    // Using /content endpoint which returns a 302 redirect to the actual file
+    const contentUrl = `${GRAPH_API_BASE}/drives/${env.ONEDRIVE_DRIVE_ID}/items/${itemId}/content`;
 
-    console.log("Media proxy: getting metadata for", itemId);
+    console.log("Media proxy: fetching", itemId);
+    console.log("Media proxy: URL", contentUrl);
 
-    const metadataResponse = await fetch(metadataUrl, {
+    const response = await fetch(contentUrl, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
+      redirect: "follow", // Follow the 302 redirect
     });
 
-    if (!metadataResponse.ok) {
-      const errorText = await metadataResponse.text();
+    console.log("Media proxy: response status", response.status);
+    console.log(
+      "Media proxy: response content-type",
+      response.headers.get("content-type")
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
       console.error(
-        "Media proxy metadata error:",
-        metadataResponse.status,
+        "Media proxy error:",
+        response.status,
         errorText.substring(0, 200)
       );
       return new Response(
         JSON.stringify({
-          error: "Failed to get media metadata",
-          status: metadataResponse.status,
-        }),
-        {
-          status: metadataResponse.status,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
-    const metadata = await metadataResponse.json();
-    const downloadUrl = metadata["@microsoft.graph.downloadUrl"];
-
-    if (!downloadUrl) {
-      console.error("Media proxy: no downloadUrl in metadata");
-      return new Response(
-        JSON.stringify({ error: "No download URL available" }),
-        {
-          status: 404,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
-    console.log(
-      "Media proxy: got downloadUrl, expected size:",
-      metadata.size,
-      "bytes"
-    );
-
-    // Step 2: Fetch the actual content from the download URL
-    const rangeHeader = request.headers.get("Range");
-    const downloadHeaders = {};
-    if (rangeHeader) {
-      downloadHeaders["Range"] = rangeHeader;
-    }
-
-    const response = await fetch(downloadUrl, { headers: downloadHeaders });
-
-    console.log(
-      "Media proxy: content response",
-      response.status,
-      "size:",
-      response.headers.get("content-length")
-    );
-
-    if (!response.ok && response.status !== 206) {
-      return new Response(
-        JSON.stringify({
-          error: "Failed to download media",
+          error: "Failed to fetch media",
           status: response.status,
+          details: errorText.substring(0, 200),
         }),
         {
           status: response.status,
@@ -988,25 +944,30 @@ async function handleMediaProxy(request, env, itemId, corsHeaders) {
       );
     }
 
+    // Stream the response back with appropriate headers
     const contentType =
-      metadata.file?.mimeType ||
-      response.headers.get("content-type") ||
-      "application/octet-stream";
+      response.headers.get("content-type") || "application/octet-stream";
     const contentLength = response.headers.get("content-length");
-    const contentRange = response.headers.get("content-range");
+
+    console.log(
+      "Media proxy: streaming",
+      contentType,
+      contentLength ? `${contentLength} bytes` : "unknown size"
+    );
 
     const responseHeaders = {
       ...corsHeaders,
       "Content-Type": contentType,
       "Cache-Control": "public, max-age=3600",
-      "Accept-Ranges": "bytes",
+      "Accept-Ranges": "bytes", // Important for video seeking
     };
 
-    if (contentLength) responseHeaders["Content-Length"] = contentLength;
-    if (contentRange) responseHeaders["Content-Range"] = contentRange;
+    if (contentLength) {
+      responseHeaders["Content-Length"] = contentLength;
+    }
 
     return new Response(response.body, {
-      status: response.status === 206 ? 206 : 200,
+      status: 200,
       headers: responseHeaders,
     });
   } catch (error) {
