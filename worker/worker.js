@@ -786,8 +786,9 @@ async function proxyPhotosGetItems(request, sessionId, corsHeaders) {
   try {
     console.log("proxyPhotosGetItems called - sessionId:", sessionId);
 
+    // CORRECTED: sessionId is a query parameter, not part of the path
     const response = await fetch(
-      `https://photospicker.googleapis.com/v1/sessions/${sessionId}/mediaItems`,
+      `https://photospicker.googleapis.com/v1/mediaItems?sessionId=${sessionId}`,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
