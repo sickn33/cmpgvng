@@ -664,6 +664,10 @@ async function handleGooglePhotosUpload(request, env, corsHeaders) {
 
     // Step 5: Upload to OneDrive
     let result;
+    console.log(
+      `Uploading to OneDrive: ${sanitizedName}, size: ${fileSize} bytes`
+    );
+
     if (fileSize < 4 * 1024 * 1024) {
       result = await uploadSmallFileFromBuffer(
         fileContent,
@@ -681,6 +685,11 @@ async function handleGooglePhotosUpload(request, env, corsHeaders) {
       );
     }
 
+    console.log(
+      "OneDrive upload result:",
+      JSON.stringify(result).substring(0, 300)
+    );
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -695,7 +704,7 @@ async function handleGooglePhotosUpload(request, env, corsHeaders) {
       }
     );
   } catch (error) {
-    console.error("Google Photos transfer error:", error);
+    console.error("Google Photos transfer error:", error.message, error.stack);
     return new Response(
       JSON.stringify({ error: error.message || "Transfer failed" }),
       {
