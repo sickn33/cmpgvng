@@ -333,15 +333,16 @@ function startPhotosSessionPolling() {
 
   let pollCount = 0;
   const maxPolls = 1800; // 30 minutes max (plenty of time to select photos)
-  let windowClosedCount = 0; // Track how many times we poll after window closes
 
   console.log("Starting Photos session polling...");
 
   photosPollingInterval = setInterval(async () => {
     pollCount++;
-    console.log(
-      `Poll #${pollCount}, window closed: ${photosPickerWindow?.closed}`
-    );
+
+    // Only log every 10 polls to reduce noise
+    if (pollCount % 10 === 0 || pollCount <= 3) {
+      console.log(`Poll #${pollCount}`);
+    }
 
     // Max polling time reached
     if (pollCount > maxPolls) {
@@ -361,37 +362,24 @@ function startPhotosSessionPolling() {
         )}`
       );
 
-      console.log(`Poll #${pollCount} response status: ${response.status}`);
-
       if (!response.ok) {
-        console.log(
-          "Photos polling: response not ok, status:",
-          response.status
-        );
-        // Check if window was closed without making selection
-        if (photosPickerWindow && photosPickerWindow.closed) {
-          windowClosedCount++;
-          console.log(`Window closed, count: ${windowClosedCount}`);
-          if (windowClosedCount > 15) {
-            clearInterval(photosPollingInterval);
-            showToast("Selezione annullata", "info");
-            console.log("Polling stopped: window closed for 15+ seconds");
-            return;
-          }
-        }
-        return; // Keep polling
+        // Network error or server error - keep polling silently
+        return;
       }
 
       const session = await response.json();
-      console.log("Photos session status:", session);
 
       if (session.mediaItemsSet) {
-        console.log("Photos: mediaItemsSet is true, fetching items...");
+        console.log("Photos: mediaItemsSet is true! Fetching items...");
         clearInterval(photosPollingInterval);
 
-        // Close popup if still open
-        if (photosPickerWindow && !photosPickerWindow.closed) {
-          photosPickerWindow.close();
+        // Try to close popup (may fail due to cross-origin)
+        try {
+          if (photosPickerWindow) {
+            photosPickerWindow.close();
+          }
+        } catch (e) {
+          // Ignore cross-origin errors
         }
 
         // Fetch selected media items
@@ -399,26 +387,10 @@ function startPhotosSessionPolling() {
         return;
       }
 
-      // If window is closed but mediaItemsSet is still false, track it
-      if (photosPickerWindow && photosPickerWindow.closed) {
-        windowClosedCount++;
-        console.log(
-          `Window closed but mediaItemsSet still false, count: ${windowClosedCount}`
-        );
-        if (windowClosedCount > 15) {
-          clearInterval(photosPollingInterval);
-          showToast("Selezione annullata", "info");
-          console.log(
-            "Polling stopped: window closed for 15+ seconds without selection"
-          );
-          return;
-        }
-      } else {
-        windowClosedCount = 0; // Reset if window is open
-      }
+      // NOTE: We do NOT check window.closed anymore because cross-origin
+      // popups always report as closed. We rely only on mediaItemsSet from API.
     } catch (error) {
-      console.error("Photos polling error:", error);
-      console.error("Error stack:", error.stack);
+      console.error("Photos polling error:", error.message);
     }
   }, 1000); // Poll every second
 }
