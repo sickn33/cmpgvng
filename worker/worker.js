@@ -796,28 +796,46 @@ async function proxyPhotosGetItems(request, sessionId, corsHeaders) {
     );
 
     console.log("Photos API mediaItems response status:", response.status);
+    console.log(
+      "Photos API response headers:",
+      JSON.stringify(Object.fromEntries(response.headers.entries()))
+    );
 
     // Get response as text first to handle non-JSON responses
     const responseText = await response.text();
+    console.log("Photos API raw response:", responseText.substring(0, 500));
 
     // Try to parse as JSON
     let data;
     try {
       data = JSON.parse(responseText);
+      console.log(
+        "Photos API parsed data:",
+        JSON.stringify(data).substring(0, 500)
+      );
     } catch (parseError) {
       console.error(
         "Failed to parse Photos API response as JSON:",
-        responseText.substring(0, 200)
+        responseText.substring(0, 500)
       );
       return new Response(
         JSON.stringify({
           error: "Invalid response from Google Photos API",
-          details: responseText.substring(0, 200),
+          details: responseText.substring(0, 500),
+          status: response.status,
         }),
         {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
+      );
+    }
+
+    // If there's an error in the response, log it
+    if (data.error) {
+      console.error(
+        "Google Photos API returned error:",
+        JSON.stringify(data.error)
       );
     }
 

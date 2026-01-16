@@ -1,13 +1,19 @@
-# Google Drive to OneDrive Integration - cmpgvng
+# Google Drive + Photos to OneDrive Integration - cmpgvng
 
 ## Background and Motivation
 
-L'utente vuole aggiungere la possibilità di importare foto direttamente da Google Drive e caricarle automaticamente sulla cartella OneDrive. Il flusso desiderato è:
+L'utente vuole aggiungere la possibilità di importare foto direttamente da Google Drive E **Google Photos** e caricarle automaticamente sulla cartella OneDrive.
 
-1. Utente va sul sito e clicca "Importa da Google Drive"
-2. Si apre un popup (Google Picker) dove l'utente può navigare nel proprio Google Drive
-3. L'utente seleziona le foto desiderate
-4. Le foto vengono trasferite automaticamente alla cartella OneDrive
+### Google Drive Integration ✅ COMPLETATO
+
+- Picker funziona
+- Trasferimento a OneDrive funziona
+
+### Google Photos Integration 🔄 IN CORSO
+
+- Session creation ✅
+- Session polling ✅
+- mediaItems fetch ❌ Errore - da debuggare
 
 **Stack attuale:**
 
