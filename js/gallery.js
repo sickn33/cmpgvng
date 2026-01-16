@@ -184,6 +184,8 @@ function openLightbox(index) {
 
     // Debug: Test fetch the video URL first to see what we get
     console.log("Testing video URL:", mediaUrl);
+    console.log("Video element before src:", video.src);
+
     fetch(mediaUrl, { method: "HEAD" })
       .then((response) => {
         console.log("Video HEAD response:", {
@@ -195,8 +197,14 @@ function openLightbox(index) {
       })
       .catch((err) => console.error("Video HEAD fetch error:", err));
 
+    // Set video source
     video.src = mediaUrl;
+    console.log("Video element AFTER setting src:", video.src);
+    console.log("Video currentSrc:", video.currentSrc);
+    console.log("Video networkState:", video.networkState);
+
     video.load(); // Force reload
+    console.log("Video element AFTER load():", video.src);
   } else {
     video.classList.add("hidden");
     video.pause();
