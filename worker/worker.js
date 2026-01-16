@@ -887,6 +887,7 @@ async function proxyPhotosGetItems(request, sessionId, corsHeaders) {
 
 /**
  * Handle media proxy - stream video/image from OneDrive
+ * Supports Range requests for video seeking
  */
 async function handleMediaProxy(request, env, itemId, corsHeaders) {
   // Get password from query string
@@ -905,17 +906,28 @@ async function handleMediaProxy(request, env, itemId, corsHeaders) {
     const accessToken = await getAccessToken(env);
 
     // Get file download URL from OneDrive
-    // Using /content endpoint which returns a 302 redirect to the actual file
     const contentUrl = `${GRAPH_API_BASE}/drives/${env.ONEDRIVE_DRIVE_ID}/items/${itemId}/content`;
+
+    // Check for Range header (needed for video seeking)
+    const rangeHeader = request.headers.get("Range");
 
     console.log("Media proxy: fetching", itemId);
     console.log("Media proxy: URL", contentUrl);
+    console.log("Media proxy: Range header", rangeHeader || "none");
+
+    // Build headers for OneDrive request
+    const oneDriveHeaders = {
+      Authorization: `Bearer ${accessToken}`,
+    };
+
+    // Pass Range header to OneDrive if present
+    if (rangeHeader) {
+      oneDriveHeaders["Range"] = rangeHeader;
+    }
 
     const response = await fetch(contentUrl, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-      redirect: "follow", // Follow the 302 redirect
+      headers: oneDriveHeaders,
+      redirect: "follow",
     });
 
     console.log("Media proxy: response status", response.status);
@@ -924,7 +936,7 @@ async function handleMediaProxy(request, env, itemId, corsHeaders) {
       response.headers.get("content-type")
     );
 
-    if (!response.ok) {
+    if (!response.ok && response.status !== 206) {
       const errorText = await response.text();
       console.error(
         "Media proxy error:",
@@ -948,26 +960,34 @@ async function handleMediaProxy(request, env, itemId, corsHeaders) {
     const contentType =
       response.headers.get("content-type") || "application/octet-stream";
     const contentLength = response.headers.get("content-length");
+    const contentRange = response.headers.get("content-range");
 
     console.log(
       "Media proxy: streaming",
       contentType,
-      contentLength ? `${contentLength} bytes` : "unknown size"
+      contentLength ? `${contentLength} bytes` : "unknown size",
+      contentRange ? `range: ${contentRange}` : ""
     );
 
     const responseHeaders = {
       ...corsHeaders,
       "Content-Type": contentType,
       "Cache-Control": "public, max-age=3600",
-      "Accept-Ranges": "bytes", // Important for video seeking
+      "Accept-Ranges": "bytes",
     };
 
     if (contentLength) {
       responseHeaders["Content-Length"] = contentLength;
     }
 
+    // Include Content-Range header for partial responses
+    if (contentRange) {
+      responseHeaders["Content-Range"] = contentRange;
+    }
+
+    // Return 206 for partial content, 200 for full content
     return new Response(response.body, {
-      status: 200,
+      status: response.status === 206 ? 206 : 200,
       headers: responseHeaders,
     });
   } catch (error) {

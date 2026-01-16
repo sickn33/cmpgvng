@@ -1,3 +1,119 @@
+# CMP GVNG - Scratchpad
+
+---
+
+# 🎬 Video Playback Fix - Error Code 4
+
+## Background and Motivation
+
+L'utente riceve un errore quando cerca di riprodurre video nella galleria:
+
+```
+Video load error: Event {isTrusted: true, type: 'error'...}
+Video error code: 4 message:
+```
+
+**Error code 4** = `MEDIA_ERR_SRC_NOT_SUPPORTED` secondo HTML5 MediaError spec.
+
+## Key Challenges and Analysis
+
+### Root Cause Investigation (Systematic Debugging)
+
+Ho analizzato il codice usando la skill `systematic-debugging`. Cause identificate:
+
+#### 1. **`downloadUrl` scaduto** (CAUSA PRINCIPALE)
+
+- In `gallery.js:143-147`, il codice usa `item.downloadUrl` se disponibile
+- `@microsoft.graph.downloadUrl` di OneDrive **scade dopo pochi minuti**
+- Se la gallery è stata caricata tempo fa, l'URL non è più valido
+
+#### 2. **CORS bloccato sui video**
+
+- Gli URL diretti Microsoft (`my.microsoftpersonalcontent.com`) possono bloccare CORS
+- Per immagini funziona ma i video hanno policy più restrittive
+
+#### 3. **Range Requests non gestite**
+
+- I video richiedono HTTP Range requests per lo streaming/seeking
+- Il worker ha `Accept-Ranges: bytes` nell'output ma **non gestisce Range in input**
+
+## High-level Task Breakdown
+
+### Task 1: Forzare uso proxy per video
+
+- [ ] **1.1**: Modificare `gallery.js` per usare SEMPRE `/media/{id}` endpoint per video
+- [ ] **1.2**: Mantenere `downloadUrl` solo per immagini (ottimizzazione)
+- **Success criteria**: Video usa sempre proxy, immagini usano URL diretto se disponibile
+
+### Task 2: Implementare Range Request Support nel Worker
+
+- [ ] **2.1**: Modificare `handleMediaProxy()` per leggere header `Range`
+- [ ] **2.2**: Passare l'header Range a OneDrive quando richiesto
+- [ ] **2.3**: Restituire corretto `206 Partial Content` con headers appropriati
+- **Success criteria**: Video si carica con seeking funzionante
+
+### Task 3: Testing e Verifica
+
+- [ ] **3.1**: Test manuale con video nella galleria
+- [ ] **3.2**: Verifica seeking video funziona (click a metà timeline)
+- [ ] **3.3**: Verifica immagini continuano a funzionare
+- **Success criteria**: Video play + seek, immagini visualizzate, no console errors
+
+## Technical Details
+
+### Modifica gallery.js (Task 1)
+
+```javascript
+// PRIMA (problematico per video):
+const mediaUrl = item.downloadUrl || `${CONFIG.workerUrl}/media/${item.id}?...`;
+
+// DOPO (forza proxy per video):
+const mediaUrl = item.isVideo
+  ? `${CONFIG.workerUrl}/media/${item.id}?password=${encodeURIComponent(
+      password
+    )}`
+  : item.downloadUrl || `${CONFIG.workerUrl}/media/${item.id}?...`;
+```
+
+### Modifica worker.js - Range Support (Task 2)
+
+```javascript
+async function handleMediaProxy(request, env, itemId, corsHeaders) {
+  // Leggere Range header dalla richiesta
+  const rangeHeader = request.headers.get("Range");
+
+  // ... fetch da OneDrive ...
+
+  // Se richiesto range, passarlo a OneDrive e restituire 206
+  if (rangeHeader) {
+    responseHeaders["Content-Range"] = "...";
+    return new Response(response.body, {
+      status: 206,
+      headers: responseHeaders,
+    });
+  }
+}
+```
+
+## Project Status Board
+
+- [ ] Approvazione piano dall'utente
+- [ ] Task 1: Frontend fix proxy per video
+- [ ] Task 2: Backend Range requests
+- [ ] Task 3: Testing
+
+## Executor's Feedback or Assistance Requests
+
+🔸 **In attesa approvazione piano prima di procedere all'implementazione.**
+
+## Lessons
+
+- `@microsoft.graph.downloadUrl` scade rapidamente - non usare per media che richiede tempo per caricare
+- Video streaming richiede Range requests support
+- Usare proxy come fallback più affidabile del download URL diretto
+
+---
+
 # Google Drive + Photos to OneDrive Integration - cmpgvng
 
 ## Background and Motivation

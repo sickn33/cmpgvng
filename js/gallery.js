@@ -138,17 +138,23 @@ function openLightbox(index) {
     item.isVideo
   );
 
-  // Get media URL - use downloadUrl if available, otherwise use proxy endpoint
+  // Get media URL
+  // Video: ALWAYS use proxy (downloadUrl expires quickly, causes error code 4)
+  // Images: use downloadUrl if available for performance, fallback to proxy
   const password = sessionStorage.getItem("cmpgvng_password");
-  const mediaUrl =
-    item.downloadUrl ||
-    `${CONFIG.workerUrl}/media/${item.id}?password=${encodeURIComponent(
-      password
-    )}`;
+  const proxyUrl = `${CONFIG.workerUrl}/media/${
+    item.id
+  }?password=${encodeURIComponent(password)}`;
+
+  const mediaUrl = item.isVideo ? proxyUrl : item.downloadUrl || proxyUrl;
 
   console.log(
     "Using URL:",
-    item.downloadUrl ? "direct downloadUrl" : "proxy endpoint"
+    item.isVideo
+      ? "proxy (video)"
+      : item.downloadUrl
+      ? "direct downloadUrl"
+      : "proxy endpoint"
   );
 
   // Show lightbox
