@@ -131,6 +131,14 @@ function openLightbox(index) {
   const image = document.getElementById("lightboxImage");
   const video = document.getElementById("lightboxVideo");
 
+  console.log(
+    "Opening lightbox for item:",
+    item.name,
+    "isVideo:",
+    item.isVideo
+  );
+  console.log("Download URL:", item.downloadUrl?.substring(0, 100) + "...");
+
   // Show lightbox
   lightbox.classList.remove("hidden");
   document.body.style.overflow = "hidden";
@@ -139,7 +147,25 @@ function openLightbox(index) {
   if (item.isVideo) {
     image.classList.add("hidden");
     video.classList.remove("hidden");
+
+    // Add error handler for video
+    video.onerror = (e) => {
+      console.error("Video load error:", e);
+      console.error(
+        "Video error code:",
+        video.error?.code,
+        "message:",
+        video.error?.message
+      );
+      showToast("Errore nel caricamento del video", "error");
+    };
+
+    video.onloadstart = () => console.log("Video loading started...");
+    video.onloadeddata = () => console.log("Video data loaded!");
+    video.oncanplay = () => console.log("Video can play!");
+
     video.src = item.downloadUrl;
+    video.load(); // Force reload
   } else {
     video.classList.add("hidden");
     video.pause();
