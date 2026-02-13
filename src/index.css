@@ -1,0 +1,630 @@
+/* ===== The Fellowship of CMP '02 - Design System ===== */
+:root {
+  /* --- 1. Color Palette (Warm Minimalist Archive) --- */
+
+  /* Surface: Paper & Ink */
+  --surface-base: #fdf8f3; /* Warm, aged paper */
+  --surface-raised: #ffffff; /* Clean paper for cards */
+  --surface-dim: #f2e8da; /* Slightly darker/pressed paper */
+
+  /* Glass: Crystalline */
+  --glass-bg: rgba(255, 255, 255, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.4);
+  --glass-blur: 16px; /* High blur for premium feel */
+
+  /* Text: Ink */
+  --text-primary: #2a211d; /* Deep Espresso / Ink */
+  --text-secondary: #5c4d44; /* Diluted Ink */
+  --text-muted: #9c8c84; /* Faded Ink */
+  --text-on-accent: #ffffff;
+
+  /* Accent: Aged Amber/Rust */
+  --accent-primary: #c77825;
+  --accent-secondary: #a0522d;
+  --accent-hover: #d68a3c;
+
+  /* Status */
+  --status-error: #8b0000; /* Dried Blood / Dark Red */
+  --status-success: #3a5f0b; /* Moss Green */
+
+  /* --- 2. Typography (Editorial) --- */
+  --font-display: "Cormorant Garamond", serif;
+  --font-body: "DM Sans", sans-serif;
+
+  /* Scale */
+  --text-display: 3.5rem; /* Main Title */
+  --text-h1: 2.25rem; /* Page Headings */
+  --text-h2: 1.5rem; /* Section Headings */
+  --text-h3: 1.125rem; /* Card Titles */
+  --text-body: 1rem; /* Standard UI */
+  --text-sm: 0.875rem; /* Metadata */
+  --text-xs: 0.75rem; /* Captions */
+
+  /* --- 3. Spacing Grid (4px base) --- */
+  --space-1: 0.25rem; /* 4px */
+  --space-2: 0.5rem; /* 8px */
+  --space-3: 0.75rem; /* 12px */
+  --space-4: 1rem; /* 16px */
+  --space-6: 1.5rem; /* 24px */
+  --space-8: 2rem; /* 32px */
+  --space-12: 3rem; /* 48px */
+  --space-16: 4rem; /* 64px */
+
+  /* --- 4. Elevation & Radius --- */
+  --shadow-sm: 0 1px 2px rgba(42, 33, 29, 0.05);
+  --shadow-md: 0 4px 12px rgba(42, 33, 29, 0.08);
+  --shadow-lg: 0 12px 32px rgba(42, 33, 29, 0.12);
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+
+  /* --- 5. Motion --- */
+  --ease-out: cubic-bezier(0.215, 0.61, 0.355, 1);
+  --ease-in-out: cubic-bezier(0.645, 0.045, 0.355, 1);
+}
+
+/* --- Base Reset --- */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--surface-base);
+  color: var(--text-primary);
+  line-height: 1.5;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* --- Global Noise Texture --- */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.06;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='1'/%3E%3C/svg%3E");
+  mix-blend-mode: multiply;
+}
+
+/* --- Typography Utilities --- */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-style: italic;
+  line-height: 1.1;
+  color: var(--text-primary);
+}
+
+.text-display {
+  font-size: var(--text-display);
+  letter-spacing: -0.02em;
+}
+.text-h1 {
+  font-size: var(--text-h1);
+  letter-spacing: -0.01em;
+}
+.text-h2 {
+  font-size: var(--text-h2);
+}
+.text-body {
+  font-size: var(--text-body);
+}
+.text-sm {
+  font-size: var(--text-sm);
+}
+
+/* --- Layout Utilities --- */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--space-4);
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.flex-col {
+  display: flex;
+  flex-direction: column;
+}
+.gap-2 {
+  gap: var(--space-2);
+}
+.gap-4 {
+  gap: var(--space-4);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+/* --- App Shell Structure --- */
+.app-root {
+  min-height: 100vh;
+  padding: var(--space-6) 0;
+}
+
+/* Glass Card Container */
+.app-shell {
+  background: var(--surface-raised);
+  border: 1px solid rgba(42, 33, 29, 0.08);
+  box-shadow:
+    inset 0 0 40px rgba(42, 33, 29, 0.02),
+    0 20px 50px rgba(42, 33, 29, 0.1);
+  border-radius: 4px;
+  min-height: 85vh;
+  position: relative;
+  overflow: hidden;
+  /* Simulated book spine */
+  background:
+    linear-gradient(
+      90deg,
+      rgba(42, 33, 29, 0.05) 0%,
+      rgba(42, 33, 29, 0.02) 20px,
+      transparent 40px
+    ),
+    var(--surface-raised);
+  border-left: 12px solid rgba(42, 33, 29, 0.04);
+  isolation: isolate;
+}
+
+/* --- Interactive Elements --- */
+button {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  transition: all 0.3s var(--ease-out);
+  text-transform: uppercase;
+}
+
+.btn-primary {
+  background-color: var(--accent-primary);
+  color: var(--text-on-accent);
+  border: none;
+}
+.btn-primary:hover {
+  background-color: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-secondary {
+  background-color: transparent;
+  border: 1px solid var(--text-muted);
+  color: var(--text-secondary);
+}
+.btn-secondary:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.icon {
+  width: 1.25em;
+  height: 1.25em;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* File Queue & Lists */
+.file-card {
+  background: var(--surface-raised);
+  border-radius: var(--radius-md);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-md);
+  margin-top: var(--space-8);
+}
+
+.file-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: var(--space-4);
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3);
+  background: var(--surface-base);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(42, 33, 29, 0.05);
+}
+
+.file-preview {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  background: var(--surface-dim);
+}
+
+.file-info {
+  flex: 1;
+  min-width: 0;
+}
+.file-name {
+  font-weight: 500;
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.file-meta {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+/* Progress */
+.progress-card {
+  background: var(--surface-raised);
+  padding: var(--space-6);
+  border-radius: var(--radius-md);
+  text-align: center;
+  margin-top: var(--space-8);
+  box-shadow: var(--shadow-md);
+}
+
+.progress-track {
+  width: 100%;
+  height: 8px;
+  background: var(--surface-dim);
+  border-radius: var(--radius-full);
+  margin: var(--space-4) 0;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent-primary);
+  border-radius: var(--radius-full);
+  transition: width 0.3s ease;
+}
+
+/* Lightbox */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(42, 33, 29, 0.95);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lightbox-content {
+  max-width: 90vw;
+  max-height: 85vh;
+  position: relative;
+}
+
+.lightbox-content img,
+.lightbox-content video {
+  max-width: 100%;
+  max-height: 85vh;
+  object-fit: contain;
+  box-shadow: var(--shadow-lg);
+}
+
+.lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: var(--surface-base);
+  font-size: 2rem;
+  padding: var(--space-4);
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+.lightbox-nav:hover {
+  opacity: 1;
+}
+.lightbox-prev {
+  left: var(--space-4);
+}
+.lightbox-next {
+  right: var(--space-4);
+}
+.lightbox-close {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  background: transparent;
+  border: none;
+  color: var(--surface-base);
+  font-size: 2.5rem;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.lightbox-info {
+  position: absolute;
+  bottom: var(--space-8);
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: var(--surface-base);
+}
+
+/* --- Animations --- */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --- Components --- */
+
+/* Navigation */
+.nav-group {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-1);
+  background: rgba(42, 33, 29, 0.03);
+  border-radius: var(--radius-full);
+  width: fit-content;
+  margin: 0 auto var(--space-8);
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-6);
+  border-radius: var(--radius-full);
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  transition: all 0.2s var(--ease-out);
+}
+
+.nav-item:hover {
+  color: var(--text-primary);
+  background: rgba(42, 33, 29, 0.05);
+}
+
+.nav-item.active {
+  background: var(--surface-base);
+  color: var(--accent-primary);
+  box-shadow: var(--shadow-sm);
+  font-weight: 600;
+}
+
+/* Upload Zone - The Album Slot */
+#dropZone.upload-zone {
+  border: 2px solid rgba(42, 33, 29, 0.1) !important;
+  background-color: var(--surface-dim) !important;
+  background-image:
+    linear-gradient(rgba(42, 33, 29, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(42, 33, 29, 0.02) 1px, transparent 1px);
+  background-size: 20px 20px;
+  border-radius: 2px !important;
+  padding: var(--space-16) var(--space-4) !important;
+  text-align: center;
+  transition: all 0.4s var(--ease-out);
+  cursor: pointer;
+  position: relative;
+  overflow: visible;
+  margin-bottom: var(--space-8);
+  isolation: isolate;
+}
+
+/* Photo Corners for the slot */
+.upload-zone::before,
+.upload-zone::after,
+.upload-zone .flex-col::before,
+.upload-zone .flex-col::after {
+  content: "";
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border: 1.5px solid var(--accent-primary);
+  opacity: 0.3;
+}
+.upload-zone::before {
+  top: 15px;
+  left: 15px;
+  border-right: 0;
+  border-bottom: 0;
+}
+.upload-zone::after {
+  top: 15px;
+  right: 15px;
+  border-left: 0;
+  border-bottom: 0;
+}
+.upload-zone .flex-col::before {
+  bottom: 15px;
+  left: 15px;
+  border-right: 0;
+  border-top: 0;
+}
+.upload-zone .flex-col::after {
+  bottom: 15px;
+  right: 15px;
+  border-left: 0;
+  border-top: 0;
+}
+
+#dropZone.upload-zone:hover {
+  background-color: #ffffff !important;
+  border-color: var(--accent-primary) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(42, 33, 29, 0.08);
+}
+
+/* --- Gallery Masonry & Photo Prints --- */
+.gallery-masonry {
+  column-count: 1;
+  column-gap: var(--space-12); /* More breathing room like a luxury album */
+  padding: var(--space-4);
+}
+
+@media (min-width: 600px) {
+  .gallery-masonry {
+    column-count: 2;
+  }
+}
+@media (min-width: 1000px) {
+  .gallery-masonry {
+    column-count: 3;
+  }
+}
+
+.photo-mount {
+  break-inside: avoid;
+  margin-bottom: var(--space-12);
+  background: #ffffff;
+  padding: 15px 15px 50px 15px; /* Deeper bottom margin for "handwritten" note */
+  box-shadow:
+    0 1px 3px rgba(42, 33, 29, 0.05),
+    0 10px 30px rgba(42, 33, 29, 0.1);
+  border-radius: 1px;
+  cursor: pointer;
+  transition:
+    transform 0.4s var(--ease-out),
+    box-shadow 0.4s var(--ease-out);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Organic placement */
+.photo-mount:nth-child(even) {
+  transform: rotate(0.6deg);
+}
+.photo-mount:nth-child(3n) {
+  transform: rotate(-1deg);
+}
+
+.photo-mount:hover {
+  transform: scale(1.03) rotate(0deg) !important;
+  box-shadow:
+    0 15px 35px rgba(42, 33, 29, 0.12),
+    0 30px 60px rgba(42, 33, 29, 0.15);
+  z-index: 10;
+}
+
+.photo-content {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+
+.photo-content img,
+.photo-content video {
+  width: 100%;
+  height: auto;
+  display: block;
+  filter: sepia(0.05) contrast(1.02); /* Subtle warming */
+  transition: filter 0.5s ease;
+}
+
+/* Photo Corners (Skeuomorphic touches) */
+.corner-decor {
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  background: #2a211d;
+  opacity: 0.1;
+  pointer-events: none;
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+.corner-tl {
+  top: 0;
+  left: 0;
+}
+.corner-tr {
+  top: 0;
+  right: 0;
+  transform: rotate(90deg);
+}
+.corner-bl {
+  bottom: 0;
+  left: 0;
+  transform: rotate(-90deg);
+}
+.corner-br {
+  bottom: 0;
+  right: 0;
+  transform: rotate(180deg);
+}
+
+.photo-caption {
+  width: 100%;
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+  opacity: 0.9;
+  padding: var(--space-2) var(--space-4);
+  text-align: center;
+  /* Now in-flow, pushes cards naturally */
+}

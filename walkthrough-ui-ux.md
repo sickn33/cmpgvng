@@ -1,8 +1,8 @@
 # UI/UX Improvements Walkthrough
 
-## Latest Update: "Ancient Archive" Theme 📜🏺
+## Latest Update: Warm Editorial Shell + Accessibility 📜
 
-Applicata palette "Parchment & Linen" per un look classico, caldo e tattile. (Light Mode).
+Applicata palette "Parchment & Linen" per un look classico, caldo e tattile (Light Mode), ora strutturata come design system (colori, tipografia, spaziatura, motion).
 
 ### Palette "Manoscritto"
 
@@ -20,8 +20,10 @@ render_diffs(file:///Users/nicco/Antigravity%20Projects/cmpgvng/css/style.css)
 - **Light Mode Transition**: Inversione completa del tema (da dark a light).
 - **Noise Texture**: Adattata per essere visibile su sfondo chiaro (`mix-blend-mode: multiply`).
 - **Typography**: `Cormorant Garamond` risalta come vero testo stampato su carta.
+- **Shell semantico**: `App` ora usa `header` + `nav` + `main` + `footer`, con sezioni `Carica` e `Galleria` in `<section>` con intestazioni `.visually-hidden` per screen reader.
+- **Accessibilità**: focus-ring coerente, tab con `aria-pressed`, lightbox dichiarato come `role="dialog"` e navigabile da tastiera (ESC, frecce).
 
-Il risultato è un'interfaccia che sembra un documento storico o un diario di bordo elegante.
+Il risultato è un'interfaccia che sembra un documento storico o un diario di bordo elegante, ma più accessibile e coerente sul piano strutturale.
 
 ---
 

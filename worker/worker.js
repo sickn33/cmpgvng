@@ -17,11 +17,11 @@ export default {
   async fetch(request, env, ctx) {
     // Handle CORS preflight
     if (request.method === "OPTIONS") {
-      return handleCors(env);
+      return handleCors(env, request);
     }
 
     // Add CORS headers to all responses
-    const corsHeaders = getCorsHeaders(env);
+    const corsHeaders = getCorsHeaders(env, request);
 
     try {
       const url = new URL(request.url);
@@ -111,11 +111,19 @@ export default {
 };
 
 /**
- * Get CORS headers
+ * Get CORS headers - allow request Origin if in allowed list
  */
-function getCorsHeaders(env) {
+function getCorsHeaders(env, request) {
+  const allowed = (env.CORS_ORIGIN || "*").split(",").map((s) => s.trim());
+  const origin = request?.headers?.get("Origin") || "";
+  const allowOrigin =
+    allowed.includes("*") || !origin
+      ? "*"
+      : allowed.includes(origin)
+        ? origin
+        : allowed[0];
   return {
-    "Access-Control-Allow-Origin": env.CORS_ORIGIN || "*",
+    "Access-Control-Allow-Origin": allowOrigin,
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Max-Age": "86400",
@@ -125,10 +133,10 @@ function getCorsHeaders(env) {
 /**
  * Handle CORS preflight requests
  */
-function handleCors(env) {
+function handleCors(env, request) {
   return new Response(null, {
     status: 204,
-    headers: getCorsHeaders(env),
+    headers: getCorsHeaders(env, request),
   });
 }
 
